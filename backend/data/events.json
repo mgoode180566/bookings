@@ -1,0 +1,108 @@
+[
+  {
+    "id": 1,
+    "title": "No Limits Cadwell Park",
+    "venue": "Cadwell Park Circuit",
+    "date": "2026-06-07",
+    "timeOfDay": "Day",
+    "groups": [
+      {
+        "id": 10,
+        "skillLevel": "Novice",
+        "attendees": []
+      },
+      {
+        "id": 11,
+        "skillLevel": "Intermediate",
+        "attendees": []
+      },
+      {
+        "id": 12,
+        "skillLevel": "Advanced",
+        "attendees": [
+          {
+            "id": 3,
+            "name": "Matt"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "title": "MSV Oulton Park",
+    "venue": "Oulton Park Circuit",
+    "date": "2026-06-10",
+    "timeOfDay": "Day",
+    "groups": [
+      {
+        "id": 7,
+        "skillLevel": "Novice",
+        "attendees": []
+      },
+      {
+        "id": 8,
+        "skillLevel": "Intermediate",
+        "attendees": [
+          {
+            "id": 1,
+            "name": "Mike"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "skillLevel": "Advanced",
+        "attendees": []
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "title": "No Limits Snetterton",
+    "venue": "Snetterton Circuit",
+    "date": "2026-06-15",
+    "timeOfDay": "Day",
+    "groups": [
+      {
+        "id": 4,
+        "skillLevel": "Novice",
+        "attendees": []
+      },
+      {
+        "id": 5,
+        "skillLevel": "Intermediate",
+        "attendees": []
+      },
+      {
+        "id": 6,
+        "skillLevel": "Advanced",
+        "attendees": []
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "title": "No Limits Cadwell Park",
+    "venue": "Cadwell Park Circuit",
+    "date": "2026-07-05",
+    "timeOfDay": "Day",
+    "groups": [
+      {
+        "id": 1,
+        "skillLevel": "Novice",
+        "attendees": []
+      },
+      {
+        "id": 2,
+        "skillLevel": "Intermediate",
+        "attendees": []
+      },
+      {
+        "id": 3,
+        "skillLevel": "Advanced",
+        "attendees": []
+      }
+    ]
+  }
+]
