@@ -4,7 +4,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^9.0.1",
     "@mui/material": "^9.0.1"
-  }
+  },
   "scripts": {
     "build": "tsc"
   }
