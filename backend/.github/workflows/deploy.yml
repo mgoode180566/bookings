@@ -27,10 +27,13 @@ jobs:
       - name: Build app
         run: npm run build --if-present
 
+      - name: Reinstall production dependencies only
+        run: npm ci --omit=dev
+
       - name: Zip Lambda package
         run: |
           zip -r function.zip . \
-            -x ".git/*" ".github/*" "README.md"
+            -x ".git/*" ".github/*" "*.md" "*.test.*" "*.spec.*"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -42,4 +45,5 @@ jobs:
         run: |
           aws lambda update-function-code \
             --function-name bookings-node \
-            --zip-file fileb://function.zip
+            --zip-file fileb://function.zip \
+            --wait
