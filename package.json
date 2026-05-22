@@ -2,7 +2,7 @@
   "name": "bookings-backend",
   "version": "1.0.0",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev": "ts-node-dev --respawn --transpile-only -r dotenv/config src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },
@@ -10,6 +10,7 @@
     "@aws-sdk/client-s3": "^3.1052.0",
     "@vendia/serverless-express": "^4.12.6",
     "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
     "express": "^4.19.2"
   },
   "devDependencies": {
@@ -18,11 +19,9 @@
     "@types/node": "^20.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.0"
-  }
-  {
-    "compilerOptions": {
+  },
+  "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"
   }
-}
 }
