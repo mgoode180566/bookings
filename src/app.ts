@@ -5,7 +5,6 @@ import { readEvents, writeEvents, readParticipants } from './storage';
 
 const app = express();
 
-
 app.use(cors());
 app.use(express.json());
 
