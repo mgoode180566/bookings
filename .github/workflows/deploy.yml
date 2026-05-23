@@ -48,7 +48,6 @@ jobs:
           application_name: bookings
           environment_name: bookings-prod
           region: us-east-1
-          version_label: ${{ github.sha }}
+          version_label: ${{ github.sha }}-${{ github.run_number }}
           deployment_package: deploy.zip
-
-
+          use_existing_version_if_available: true
