@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import type { SkillLevel } from './types';
+import { readEvents } from './storage';
 // import { readEvents, writeEvents, readParticipants } from './storage';
 
 const app = express();
@@ -16,16 +17,16 @@ app.get('/api/message', (_req: Request, res: Response) => {
   res.json({ message: 'Hello from the other side!' });
 });
 
-// // GET /api/events
-// app.get('/api/events', async (_req: Request, res: Response) => {
-//   try {
-//     const events = await readEvents();
-//     res.json(events);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ error: 'Failed to load events' });
-//   }
-// });
+// GET /api/events
+app.get('/api/events', async (_req: Request, res: Response) => {
+  try {
+    const events = await readEvents();
+    res.json(events);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to load events' });
+  }
+});
 
 // // GET /api/participants
 // app.get('/api/participants', async (_req: Request, res: Response) => {
