@@ -182,10 +182,9 @@ const App: React.FC = () => {
     }
   };
 
-  const totalParticipants = events.reduce(
-    (acc, e) => acc + e.groups.reduce((s, g) => s + g.attendees.length, 0),
-    0,
-  );
+  const totalParticipants = new Set(
+    events.flatMap(e => e.groups.flatMap(g => g.attendees.map(a => a.name)))
+  ).size;
 
   return (
     <ThemeProvider theme={theme}>
