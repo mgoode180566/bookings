@@ -225,7 +225,7 @@ const App: React.FC = () => {
                 mb: 0.5,
               }}
             >
-              Upcoming Events
+              CB5 is life!
             </Typography>
             <Typography
               variant="body2"
