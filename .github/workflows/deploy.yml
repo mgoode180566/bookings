@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   deploy-backend:
-    name: Deploy Backend to Elastic Beanstalk
+    name: Deploy Backend to Lambda
     runs-on: ubuntu-latest
 
     steps:
@@ -40,21 +40,9 @@ jobs:
           role-to-assume: arn:aws:iam::982534349843:role/github-lambda-deploy-role
           aws-region: us-east-1
 
-      - name: Deploy to Elastic Beanstalk
-        uses: einaregilsson/beanstalk-deploy@v22
-        env:
-          AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ env.AWS_SESSION_TOKEN }}
-        with:
-          aws_access_key: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws_session_token: ${{ env.AWS_SESSION_TOKEN }}
-          application_name: bookings
-          environment_name: bookings-prod
-          region: us-east-1
-          version_label: ${{ github.sha }}-${{ github.run_number }}
-          deployment_package: deploy.zip
-          use_existing_version_if_available: true
-          wait_for_deployment: false
+      - name: Deploy to Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name bookings-api \
+            --zip-file fileb://deploy.zip
 
