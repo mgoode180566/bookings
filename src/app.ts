@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import type { SkillLevel } from './types';
-import { readEvents, writeEvents, readParticipants } from './storage';
+// import { readEvents, writeEvents, readParticipants } from './storage';
 
 const app = express();
 
