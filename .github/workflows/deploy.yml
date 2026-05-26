@@ -72,7 +72,7 @@ jobs:
           node-version: 24
 
       - name: Install UI dependencies
-        run: npm ci
+        run: npm install
         working-directory: bookings-ui
 
       - name: Build UI
