@@ -1,0 +1,17 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - cd bookings-ui
+        - npm install
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: bookings-ui/dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - bookings-ui/node_modules/**/*
