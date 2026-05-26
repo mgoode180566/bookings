@@ -8,6 +8,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get('/health', (_req: Request, res: Response) => {
+  res.sendStatus(200);
+});
+
 app.get('/api/message', (_req: Request, res: Response) => {
   res.json({ message: 'Hello from the other side!' });
 });
