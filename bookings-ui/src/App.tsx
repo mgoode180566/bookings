@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { CssBaseline, ThemeProvider, createTheme, responsiveFontSizes, Container, Typography, Box, CircularProgress, Alert } from '@mui/material';
+import React, { useState, useEffect, useMemo } from 'react';
+import { CssBaseline, ThemeProvider, createTheme, responsiveFontSizes, Container, Typography, Box, CircularProgress, Alert, Button } from '@mui/material';
 import EventList from './components/EventList';
 import { fetchEvents, fetchParticipants, addAttendeeToGroup, removeAttendeeFromGroup } from './api/api';
 import type { TrackdayEvent, SkillLevel, Participant } from './types';
@@ -141,6 +141,7 @@ const theme = responsiveFontSizes(rawTheme, { factor: 2 });
 const App: React.FC = () => {
   const [events, setEvents] = useState<TrackdayEvent[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [latestFirst, setLatestFirst] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -185,6 +186,14 @@ const App: React.FC = () => {
   const totalParticipants = new Set(
     events.flatMap(e => e.groups.flatMap(g => g.attendees.map(a => a.name)))
   ).size;
+
+  const sortedEvents = useMemo(() => {
+    return [...events].sort((a, b) => {
+      const aTime = new Date(a.date).getTime();
+      const bTime = new Date(b.date).getTime();
+      return latestFirst ? bTime - aTime : aTime - bTime;
+    });
+  }, [events, latestFirst]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -232,6 +241,22 @@ const App: React.FC = () => {
             >
               {events.length} events · {totalParticipants} participants
             </Typography>
+            <Box sx={{ mb: 3 }}>
+              <Button
+                variant="outlined"
+                onClick={() => setLatestFirst((prev) => !prev)}
+                sx={{
+                  borderColor: 'rgba(129,140,248,0.5)',
+                  color: '#c7d2fe',
+                  '&:hover': {
+                    borderColor: '#818cf8',
+                    background: 'rgba(129,140,248,0.08)',
+                  },
+                }}
+              >
+                {latestFirst ? 'Showing latest first' : 'Showing earliest first'}
+              </Button>
+            </Box>
             {loading && (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
                 <CircularProgress sx={{ color: '#818cf8' }} />
@@ -254,7 +279,7 @@ const App: React.FC = () => {
             )}
             {!loading && !error && (
               <EventList
-                events={events}
+                events={sortedEvents}
                 allParticipants={participants}
                 onAddAttendee={handleAddAttendee}
                 onRemoveAttendee={handleRemoveAttendee}
