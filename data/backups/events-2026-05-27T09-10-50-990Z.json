@@ -32,7 +32,7 @@
       }
     ]
   },
-  {
+{
     "id": 5,
     "title": "No Limits Cadwell Park",
     "venue": "Cadwell Park Circuit",
@@ -48,11 +48,11 @@
         "id": 11,
         "skillLevel": "Intermediate",
         "attendees": [
-          {
+	{
             "id": 12,
             "name": "Jamie Page"
           }
-        ]
+	]
       },
       {
         "id": 12,

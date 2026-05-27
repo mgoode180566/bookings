@@ -71,7 +71,12 @@
       {
         "id": 7,
         "skillLevel": "Novice",
-        "attendees": []
+        "attendees": [
+          {
+            "id": 1,
+            "name": "Mike"
+          }
+        ]
       },
       {
         "id": 8,

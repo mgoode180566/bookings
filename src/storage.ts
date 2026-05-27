@@ -1,6 +1,7 @@
 import {
   S3Client,
   GetObjectCommand,
+  CopyObjectCommand,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -56,6 +57,20 @@ const putJsonToS3 = async <T>(key: string, data: T): Promise<void> => {
   );
 };
 
+const backupEventsFileInS3 = async (): Promise<void> => {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupKey = `backups/events-${timestamp}.json`;
+
+  await s3.send(
+    new CopyObjectCommand({
+      Bucket: BUCKET_NAME,
+      CopySource: `${BUCKET_NAME}/events.json`,
+      Key: backupKey,
+      ContentType: 'application/json',
+    }),
+  );
+};
+
 const getJsonFromLocal = async <T>(key: string): Promise<T> => {
   const filePath = path.join(dataDir, key);
   const content = await readFile(filePath, 'utf-8');
@@ -66,6 +81,16 @@ const putJsonToLocal = async <T>(key: string, data: T): Promise<void> => {
   const filePath = path.join(dataDir, key);
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+};
+
+const backupEventsFileLocally = async (): Promise<void> => {
+  const sourcePath = path.join(dataDir, 'events.json');
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupPath = path.join(dataDir, 'backups', `events-${timestamp}.json`);
+
+  const content = await readFile(sourcePath, 'utf-8');
+  await mkdir(path.dirname(backupPath), { recursive: true });
+  await writeFile(backupPath, content, 'utf-8');
 };
 
 export const readEvents = async (): Promise<TrackdayEvent[]> => {
@@ -80,10 +105,12 @@ export const writeEvents = async (
   events: TrackdayEvent[],
 ): Promise<void> => {
   if (isDevelopment) {
+    await backupEventsFileLocally();
     await putJsonToLocal('events.json', events);
     return;
   }
 
+  await backupEventsFileInS3();
   await putJsonToS3('events.json', events);
 };
 
