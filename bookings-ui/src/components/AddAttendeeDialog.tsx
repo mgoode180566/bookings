@@ -17,8 +17,6 @@ import type { SelectChangeEvent } from '@mui/material';
 import type { TrackdayEvent, SkillLevel } from '../types';
 import type { Participant } from '../types';
 
-const SKILL_LEVELS: SkillLevel[] = ['Novice', 'Intermediate', 'Advanced'];
-
 interface AddAttendeeDialogProps {
   open: boolean;
   onClose: () => void;
@@ -38,6 +36,7 @@ const AddAttendeeDialog: React.FC<AddAttendeeDialogProps> = ({
   const [participantId, setParticipantId] = useState<number | ''>('');
 
   const fullScreen = useMediaQuery('(max-width:600px)');
+  const eventSkillLevels = event.groups.map((group) => group.skillLevel);
 
   const bookedIds = new Set(event.groups.flatMap((g) => g.attendees.map((a) => a.id)));
   const availableParticipants = allParticipants.filter((p) => !bookedIds.has(p.id));
@@ -78,7 +77,7 @@ const AddAttendeeDialog: React.FC<AddAttendeeDialogProps> = ({
               value={skillLevel}
               onChange={(e: SelectChangeEvent) => setSkillLevel(e.target.value as SkillLevel)}
             >
-              {SKILL_LEVELS.map((level) => (
+              {eventSkillLevels.map((level) => (
                 <MenuItem key={level} value={level}>
                   {level}
                 </MenuItem>

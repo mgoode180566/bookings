@@ -5,7 +5,7 @@ export interface Participant {
   name: string;
 }
 
-export type SkillLevel = 'Novice' | 'Intermediate' | 'Advanced';
+export type SkillLevel = 'Novice' | 'Intermediate' | 'Advanced' | 'CB500';
 
 export interface Attendee {
   id: number;
@@ -22,6 +22,7 @@ export interface TrackdayEvent {
   id: number;
   title: string;
   venue: string;
+  organiser?: string;
   date: string; // ISO date string
   timeOfDay: TimeOfDay;
   groups: Group[];
