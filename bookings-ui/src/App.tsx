@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CssBaseline, ThemeProvider, createTheme, responsiveFontSizes, Container, Typography, Box, CircularProgress, Alert, Button } from '@mui/material';
 import EventList from './components/EventList';
-import { fetchEvents, fetchParticipants, addAttendeeToGroup, removeAttendeeFromGroup } from './api/api';
+import CreateEventDialog from './components/CreateEventDialog';
+import { fetchEvents, fetchParticipants, addAttendeeToGroup, removeAttendeeFromGroup, createEvent } from './api/api';
 import type { TrackdayEvent, SkillLevel, Participant } from './types';
 
 const rawTheme = createTheme({
@@ -142,6 +143,7 @@ const App: React.FC = () => {
   const [events, setEvents] = useState<TrackdayEvent[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [latestFirst, setLatestFirst] = useState(true);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -183,6 +185,21 @@ const App: React.FC = () => {
     }
   };
 
+  const handleCreateEvent = async (payload: {
+    venue: string;
+    date: string;
+    timeOfDay: 'Day' | 'Evening';
+    organiser: string;
+    groups: SkillLevel[];
+  }) => {
+    try {
+      const updated = await createEvent(payload);
+      setEvents(updated);
+    } catch (err) {
+      console.error('Failed to create event:', err);
+    }
+  };
+
   const totalParticipants = new Set(
     events.flatMap(e => e.groups.flatMap(g => g.attendees.map(a => a.name)))
   ).size;
@@ -207,19 +224,41 @@ const App: React.FC = () => {
       >
         <Container maxWidth="md">
           <Box sx={{ pt: { xs: 3, sm: 6 }, pb: { xs: 4, sm: 8 } }}>
-            <Typography
-              variant="overline"
-              sx={{
-                color: '#818cf8',
-                fontWeight: 700,
-                letterSpacing: '0.15em',
-                fontSize: '0.7rem',
-                display: 'block',
-                mb: 1,
-              }}
-            >
-              Trackday Calendar
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+              <Typography
+                variant="overline"
+                sx={{
+                  color: '#818cf8',
+                  fontWeight: 700,
+                  letterSpacing: '0.15em',
+                  fontSize: '0.7rem',
+                  display: 'block',
+                }}
+              >
+                Trackday Calendar
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => setCreateDialogOpen(true)}
+                sx={{
+                  minWidth: 38,
+                  width: 38,
+                  height: 38,
+                  px: 0,
+                  borderRadius: '10px',
+                  fontSize: '1.25rem',
+                  lineHeight: 1,
+                  background: 'linear-gradient(135deg, #14b8a6, #22d3ee)',
+                  color: '#022c22',
+                  fontWeight: 800,
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
+                  },
+                }}
+              >
+                +
+              </Button>
+            </Box>
             <Typography
               variant="h4"
               component="h1"
@@ -242,20 +281,22 @@ const App: React.FC = () => {
               {events.length} events · {totalParticipants} participants
             </Typography>
             <Box sx={{ mb: 3 }}>
-              <Button
-                variant="outlined"
-                onClick={() => setLatestFirst((prev) => !prev)}
-                sx={{
-                  borderColor: 'rgba(129,140,248,0.5)',
-                  color: '#c7d2fe',
-                  '&:hover': {
-                    borderColor: '#818cf8',
-                    background: 'rgba(129,140,248,0.08)',
-                  },
-                }}
-              >
-                {latestFirst ? 'Showing latest first' : 'Showing earliest first'}
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                <Button
+                  variant="outlined"
+                  onClick={() => setLatestFirst((prev) => !prev)}
+                  sx={{
+                    borderColor: 'rgba(129,140,248,0.5)',
+                    color: '#c7d2fe',
+                    '&:hover': {
+                      borderColor: '#818cf8',
+                      background: 'rgba(129,140,248,0.08)',
+                    },
+                  }}
+                >
+                  {latestFirst ? 'Showing latest first' : 'Showing earliest first'}
+                </Button>
+              </Box>
             </Box>
             {loading && (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -285,6 +326,11 @@ const App: React.FC = () => {
                 onRemoveAttendee={handleRemoveAttendee}
               />
             )}
+            <CreateEventDialog
+              open={createDialogOpen}
+              onClose={() => setCreateDialogOpen(false)}
+              onCreate={handleCreateEvent}
+            />
           </Box>
         </Container>
       </Box>

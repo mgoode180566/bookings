@@ -29,6 +29,7 @@ const skillLevelGradient: Record<SkillLevel, string> = {
   Novice: 'linear-gradient(135deg, #059669, #34d399)',
   Intermediate: 'linear-gradient(135deg, #b45309, #fbbf24)',
   Advanced: 'linear-gradient(135deg, #b91c1c, #f87171)',
+  CB500: 'linear-gradient(135deg, #1d4ed8, #60a5fa)',
 };
 
 const getInitials = (name: string): string => {
@@ -47,6 +48,7 @@ interface EventItemProps {
 
 const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAttendee, onRemoveAttendee }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const headingText = event.organiser ? `${event.organiser}: ${event.venue}` : event.title;
   const formattedDate = new Date(event.date).toLocaleDateString('en-GB', {
     weekday: 'short',
     year: 'numeric',
@@ -76,7 +78,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
                 component="span"
                 sx={{ fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}
               >
-                {event.title}
+                {headingText}
               </Typography>
               <Chip
                 icon={
@@ -114,17 +116,36 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
               </Box>
             </Box>
           </Box>
-          <Chip
-            label={`${totalAttendees} ${totalAttendees === 1 ? 'attendee' : 'attendees'}`}
-            size="small"
-            sx={{
-              background: 'rgba(255,255,255,0.06)',
-              color: 'rgba(255,255,255,0.45)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              fontWeight: 600,
-              fontSize: '0.7rem',
-            }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {event.groups.map((group) => (
+              <Chip
+                key={group.id}
+                label={group.skillLevel}
+                size="small"
+                sx={{
+                  background: skillLevelGradient[group.skillLevel],
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '0.62rem',
+                  height: 22,
+                  border: 'none',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                }}
+              />
+            ))}
+            <Chip
+              label={`${totalAttendees} ${totalAttendees === 1 ? 'attendee' : 'attendees'}`}
+              size="small"
+              sx={{
+                background: 'rgba(255,255,255,0.06)',
+                color: 'rgba(255,255,255,0.45)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                fontWeight: 600,
+                fontSize: '0.7rem',
+              }}
+            />
+          </Box>
         </Box>
       </AccordionSummary>
       <AccordionDetails>

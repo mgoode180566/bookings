@@ -4,6 +4,16 @@ import type { SkillLevel } from './types';
 import { readEvents, readParticipants, writeEvents } from './storage';
 // import { readEvents, writeEvents, readParticipants } from './storage';
 
+const ALLOWED_SKILL_LEVELS: SkillLevel[] = ['Novice', 'Intermediate', 'Advanced', 'CB500'];
+
+interface CreateEventRequestBody {
+  venue: string;
+  date: string;
+  timeOfDay: 'Day' | 'Evening';
+  organiser: string;
+  groups: SkillLevel[];
+}
+
 const app = express();
 
 app.use(cors());
@@ -36,6 +46,83 @@ app.get('/api/participants', async (_req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to load participants' });
+  }
+});
+
+// POST /api/createevent
+app.post('/api/createevent', async (req: Request, res: Response) => {
+  try {
+    const { venue, date, timeOfDay, organiser, groups } =
+      req.body as CreateEventRequestBody;
+
+    if (!venue || typeof venue !== 'string') {
+      res.status(400).json({ error: 'Venue is required' });
+      return;
+    }
+
+    if (!date || typeof date !== 'string' || Number.isNaN(Date.parse(date))) {
+      res.status(400).json({ error: 'Valid date is required' });
+      return;
+    }
+
+    if (timeOfDay !== 'Day' && timeOfDay !== 'Evening') {
+      res.status(400).json({ error: 'Time of day must be Day or Evening' });
+      return;
+    }
+
+    if (!organiser || typeof organiser !== 'string') {
+      res.status(400).json({ error: 'Organiser is required' });
+      return;
+    }
+
+    if (!Array.isArray(groups) || groups.length === 0) {
+      res.status(400).json({ error: 'At least one group is required' });
+      return;
+    }
+
+    const uniqueGroups = [...new Set(groups)];
+
+    if (
+      uniqueGroups.some(
+        (group) =>
+          typeof group !== 'string' || !ALLOWED_SKILL_LEVELS.includes(group as SkillLevel),
+      )
+    ) {
+      res.status(400).json({ error: 'Groups must be Novice, Intermediate, Advanced or CB500' });
+      return;
+    }
+
+    const events = await readEvents();
+    const nextEventId = events.length > 0 ? Math.max(...events.map((event) => event.id)) + 1 : 1;
+    const maxGroupId =
+      events.length > 0
+        ? Math.max(
+            0,
+            ...events.flatMap((event) => event.groups.map((group) => group.id)),
+          )
+        : 0;
+
+    const newEvent = {
+      id: nextEventId,
+      title: `${organiser} ${venue}`,
+      venue,
+      organiser,
+      date,
+      timeOfDay,
+      groups: uniqueGroups.map((skillLevel, index) => ({
+        id: maxGroupId + index + 1,
+        skillLevel,
+        attendees: [],
+      })),
+    };
+
+    const updatedEvents = [...events, newEvent];
+    await writeEvents(updatedEvents);
+
+    res.status(201).json(updatedEvents);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to create event' });
   }
 });
 
