@@ -174,7 +174,9 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
               </Box>
               {group.attendees.length > 0 ? (
                 <List dense disablePadding sx={{ pl: 0.5 }}>
-                  {group.attendees.map((attendee) => (
+                  {[...group.attendees]
+                    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+                    .map((attendee) => (
                     <ListItem
                       key={attendee.id}
                       disableGutters
