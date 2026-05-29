@@ -3,8 +3,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { CssBaseline, ThemeProvider, createTheme, responsiveFontSizes, Container, Typography, Box, CircularProgress, Alert, Button } from '@mui/material';
 import EventList from './components/EventList';
 import CreateEventDialog from './components/CreateEventDialog';
-import { fetchEvents, fetchParticipants, addAttendeeToGroup, removeAttendeeFromGroup, createEvent } from './api/api';
-import type { TrackdayEvent, SkillLevel, Participant } from './types';
+import { fetchEvents, addAttendeeToGroup, removeAttendeeFromGroup, createEvent } from './api/api';
+import type { TrackdayEvent, SkillLevel } from './types';
+import { useAuth } from 'react-oidc-context';
 
 const rawTheme = createTheme({
   palette: {
@@ -140,8 +141,8 @@ const rawTheme = createTheme({
 const theme = responsiveFontSizes(rawTheme, { factor: 2 });
 
 const App: React.FC = () => {
+  const auth = useAuth();
   const [events, setEvents] = useState<TrackdayEvent[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
   const [latestFirst, setLatestFirst] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -149,10 +150,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchEvents(), fetchParticipants()])
-      .then(([evts, parts]) => {
+    fetchEvents()
+      .then((evts) => {
         setEvents(evts);
-        setParticipants(parts);
         setError(null);
       })
       .catch(() => setError('Could not connect to the server. Make sure the backend is running.'))
@@ -162,10 +162,24 @@ const App: React.FC = () => {
   const handleAddAttendee = async (
     eventId: number,
     skillLevel: SkillLevel,
-    participantId: number,
   ) => {
     try {
-      const updated = await addAttendeeToGroup(eventId, skillLevel, participantId);
+      if (!auth.isAuthenticated) {
+        await auth.signinRedirect({
+          extraQueryParams: {
+            identity_provider: 'Facebook',
+          },
+        });
+        return;
+      }
+
+      const accessToken = auth.user?.access_token;
+
+      if (!accessToken) {
+        throw new Error('No access token found');
+      }
+
+      const updated = await addAttendeeToGroup(eventId, skillLevel, accessToken);
       setEvents(updated);
     } catch (err) {
       console.error('Failed to add attendee:', err);
@@ -175,10 +189,9 @@ const App: React.FC = () => {
   const handleRemoveAttendee = async (
     eventId: number,
     skillLevel: SkillLevel,
-    attendeeId: number,
   ) => {
     try {
-      const updated = await removeAttendeeFromGroup(eventId, skillLevel, attendeeId);
+      const updated = await removeAttendeeFromGroup(eventId, skillLevel);
       setEvents(updated);
     } catch (err) {
       console.error('Failed to remove attendee:', err);
@@ -237,27 +250,49 @@ const App: React.FC = () => {
               >
                 Trackday Calendar
               </Typography>
-              <Button
-                variant="contained"
-                onClick={() => setCreateDialogOpen(true)}
-                sx={{
-                  minWidth: 38,
-                  width: 38,
-                  height: 38,
-                  px: 0,
-                  borderRadius: '10px',
-                  fontSize: '1.25rem',
-                  lineHeight: 1,
-                  background: 'linear-gradient(135deg, #14b8a6, #22d3ee)',
-                  color: '#022c22',
-                  fontWeight: 800,
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
-                  },
-                }}
-              >
-                +
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  onClick={() => setCreateDialogOpen(true)}
+                  sx={{
+                    minWidth: 38,
+                    width: 38,
+                    height: 38,
+                    px: 0,
+                    borderRadius: '10px',
+                    fontSize: '1.25rem',
+                    lineHeight: 1,
+                    background: 'linear-gradient(135deg, #14b8a6, #22d3ee)',
+                    color: '#022c22',
+                    fontWeight: 800,
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
+                    },
+                  }}
+                >
+                  +
+                </Button>
+
+                {!auth.isLoading &&
+                  (auth.isAuthenticated ? (
+                    <Button variant="outlined" onClick={() => auth.signoutRedirect()}>
+                      Sign out
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      onClick={() =>
+                        auth.signinRedirect({
+                          extraQueryParams: {
+                            identity_provider: 'Facebook',
+                          },
+                        })
+                      }
+                    >
+                      Sign in
+                    </Button>
+                  ))}
+              </Box>
             </Box>
             <Typography
               variant="h4"
@@ -321,7 +356,6 @@ const App: React.FC = () => {
             {!loading && !error && (
               <EventList
                 events={sortedEvents}
-                allParticipants={participants}
                 onAddAttendee={handleAddAttendee}
                 onRemoveAttendee={handleRemoveAttendee}
               />

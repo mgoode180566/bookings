@@ -22,7 +22,6 @@ import NightsStayIcon from '@mui/icons-material/NightsStay';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import CloseIcon from '@mui/icons-material/Close';
 import type { TrackdayEvent, SkillLevel } from '../types';
-import type { Participant } from '../types';
 import AddAttendeeDialog from './AddAttendeeDialog';
 
 const skillLevelGradient: Record<SkillLevel, string> = {
@@ -41,12 +40,11 @@ const getInitials = (name: string): string => {
 
 interface EventItemProps {
   event: TrackdayEvent;
-  allParticipants: Participant[];
-  onAddAttendee: (eventId: number, skillLevel: SkillLevel, participantId: number) => void;
-  onRemoveAttendee: (eventId: number, skillLevel: SkillLevel, attendeeId: number) => void;
+  onAddAttendee: (eventId: number, skillLevel: SkillLevel) => void;
+  onRemoveAttendee: (eventId: number, skillLevel: SkillLevel) => void;
 }
 
-const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAttendee, onRemoveAttendee }) => {
+const EventItem: React.FC<EventItemProps> = ({ event, onAddAttendee, onRemoveAttendee }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const headingText = event.organiser ? `${event.organiser}: ${event.venue}` : event.title;
   const formattedDate = new Date(event.date).toLocaleDateString('en-GB', {
@@ -178,7 +176,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
                     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
                     .map((attendee) => (
                     <ListItem
-                      key={attendee.id}
+                      key={attendee.userId}
                       disableGutters
                       sx={{
                         py: 0.5,
@@ -214,7 +212,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
                       />
                       <IconButton
                         size="small"
-                        onClick={() => onRemoveAttendee(event.id, group.skillLevel, attendee.id)}
+                        onClick={() => onRemoveAttendee(event.id, group.skillLevel)}
                         sx={{
                           ml: 'auto',
                           color: 'rgba(255,255,255,0.2)',
@@ -271,9 +269,8 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
       <AddAttendeeDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        onAdd={(skillLevel, participantId) => onAddAttendee(event.id, skillLevel, participantId)}
+        onAdd={(skillLevel) => onAddAttendee(event.id, skillLevel)}
         event={event}
-        allParticipants={allParticipants}
       />
     </Accordion>
   );
@@ -281,19 +278,17 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
 
 interface EventListProps {
   events: TrackdayEvent[];
-  allParticipants: Participant[];
-  onAddAttendee: (eventId: number, skillLevel: SkillLevel, participantId: number) => void;
-  onRemoveAttendee: (eventId: number, skillLevel: SkillLevel, attendeeId: number) => void;
+  onAddAttendee: (eventId: number, skillLevel: SkillLevel) => void;
+  onRemoveAttendee: (eventId: number, skillLevel: SkillLevel) => void;
 }
 
-const EventList: React.FC<EventListProps> = ({ events, allParticipants, onAddAttendee, onRemoveAttendee }) => {
+const EventList: React.FC<EventListProps> = ({ events, onAddAttendee, onRemoveAttendee }) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {events.map((event) => (
         <EventItem
           key={event.id}
           event={event}
-          allParticipants={allParticipants}
           onAddAttendee={onAddAttendee}
           onRemoveAttendee={onRemoveAttendee}
         />

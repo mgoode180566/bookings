@@ -11,6 +11,14 @@ export interface CreateEventInput {
 // In production set VITE_API_URL to your deployed backend URL
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api';
 
+const getAccessToken = (): string => {
+  const token = localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
+  if (!token) {
+    throw new Error('Missing access token. Please sign in again.');
+  }
+  return token;
+};
+
 export const fetchEvents = async (): Promise<TrackdayEvent[]> => {
   const res = await fetch(`${BASE_URL}/events`);
   if (!res.ok) throw new Error('Failed to fetch events');
@@ -26,11 +34,16 @@ export const fetchParticipants = async (): Promise<Participant[]> => {
 export const removeAttendeeFromGroup = async (
   eventId: number,
   skillLevel: SkillLevel,
-  attendeeId: number,
 ): Promise<TrackdayEvent[]> => {
+  const accessToken = getAccessToken();
   const res = await fetch(
-    `${BASE_URL}/events/${eventId}/groups/${encodeURIComponent(skillLevel)}/attendees/${attendeeId}`,
-    { method: 'DELETE' },
+    `${BASE_URL}/events/${eventId}/groups/${encodeURIComponent(skillLevel)}/attendees/self`,
+    {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
   );
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -42,23 +55,25 @@ export const removeAttendeeFromGroup = async (
 export const addAttendeeToGroup = async (
   eventId: number,
   skillLevel: SkillLevel,
-  participantId: number,
+  accessToken: string,
 ): Promise<TrackdayEvent[]> => {
   const res = await fetch(
     `${BASE_URL}/events/${eventId}/groups/${encodeURIComponent(skillLevel)}/attendees`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ participantId }),
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     },
   );
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error((err as { error: string }).error);
   }
+
   return res.json() as Promise<TrackdayEvent[]>;
 };
-
 export const createEvent = async (
   payload: CreateEventInput,
 ): Promise<TrackdayEvent[]> => {

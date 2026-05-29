@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import type { SkillLevel } from './types';
 import { readEvents, readParticipants, writeEvents } from './storage';
+import { AuthenticatedRequest, requireAuth } from './auth';
 // import { readEvents, writeEvents, readParticipants } from './storage';
 
 const ALLOWED_SKILL_LEVELS: SkillLevel[] = ['Novice', 'Intermediate', 'Advanced', 'CB500'];
@@ -129,19 +130,14 @@ app.post('/api/createevent', async (req: Request, res: Response) => {
 // POST /api/events/:eventId/groups/:skillLevel/attendees
 app.post(
   '/api/events/:eventId/groups/:skillLevel/attendees',
-  async (req: Request, res: Response) => {
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const eventId = Number(req.params.eventId);
       const skillLevel = req.params.skillLevel as SkillLevel;
-      const { participantId } = req.body as { participantId: number };
 
-      const participants = await readParticipants();
-      const participant = participants.find((p) => p.id === participantId);
-
-      if (!participant) {
-        res.status(404).json({ error: 'Participant not found' });
-        return;
-      }
+      const userId = req.user!.sub;
+      const userName = req.user!.username ?? req.user!.email ?? userId;
 
       const events = await readEvents();
       const event = events.find((e) => e.id === eventId);
@@ -159,19 +155,19 @@ app.post(
       }
 
       const alreadyBooked = event.groups.some((g) =>
-        g.attendees.some((a) => a.id === participantId),
+        g.attendees.some((a) => a.userId === userId),
       );
 
       if (alreadyBooked) {
         res.status(409).json({
-          error: 'Participant already booked on this event',
+          error: 'You are already booked on this event',
         });
         return;
       }
 
       group.attendees.push({
-        id: participant.id,
-        name: participant.name,
+        userId: userId,
+        name: userName,
       });
 
       await writeEvents(events);
@@ -184,14 +180,15 @@ app.post(
   },
 );
 
-// DELETE /api/events/:eventId/groups/:skillLevel/attendees/:attendeeId
+// DELETE /api/events/:eventId/groups/:skillLevel/attendees/self
 app.delete(
-  '/api/events/:eventId/groups/:skillLevel/attendees/:attendeeId',
-  async (req: Request, res: Response) => {
+  '/api/events/:eventId/groups/:skillLevel/attendees/self',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const eventId = Number(req.params.eventId);
       const skillLevel = req.params.skillLevel as SkillLevel;
-      const attendeeId = Number(req.params.attendeeId);
+      const userId = req.user!.sub;
 
       const events = await readEvents();
       const event = events.find((e) => e.id === eventId);
@@ -208,7 +205,7 @@ app.delete(
         return;
       }
 
-      const idx = group.attendees.findIndex((a) => a.id === attendeeId);
+      const idx = group.attendees.findIndex((a) => a.userId === userId);
 
       if (idx === -1) {
         res.status(404).json({ error: 'Attendee not found' });

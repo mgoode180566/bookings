@@ -8,7 +8,7 @@ export interface Participant {
 export type SkillLevel = 'Novice' | 'Intermediate' | 'Advanced' | 'CB500';
 
 export interface Attendee {
-  id: number;
+  userId: string;
   name: string;
 }
 
