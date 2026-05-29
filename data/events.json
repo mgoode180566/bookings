@@ -50,7 +50,16 @@
       {
         "id": 5,
         "skillLevel": "Novice",
-        "attendees": []
+        "attendees": [
+          {
+            "id": 4,
+            "name": "Rick"
+          },
+          {
+            "id": 2,
+            "name": "Afif"
+          }
+        ]
       },
       {
         "id": 6,
@@ -104,6 +113,10 @@
           {
             "id": 6,
             "name": "Karl"
+          },
+          {
+            "id": 7,
+            "name": "Will"
           }
         ]
       }
