@@ -150,36 +150,31 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const completePendingAdd = async () => {
-      console.log('Checking for pending attendee add... ', auth);
-      if (!auth.isAuthenticated || !auth.user?.access_token) {
+      if (auth.isLoading || !auth.isAuthenticated || !auth.user?.access_token) {
         return;
       }
 
       const pending = sessionStorage.getItem('pendingAddAttendee');
-
-      if (!pending) {
-        return;
-      }
+      if (!pending) return;
 
       sessionStorage.removeItem('pendingAddAttendee');
 
-      const { eventId, skillLevel } = JSON.parse(pending) as PendingAddAttendee;
+      const { eventId, skillLevel } = JSON.parse(pending) as {
+        eventId: number;
+        skillLevel: SkillLevel;
+      };
 
-      try {
-        const updated = await addAttendeeToGroup(
-          eventId,
-          skillLevel,
-          auth.user.access_token,
-        );
+      const updated = await addAttendeeToGroup(
+        eventId,
+        skillLevel,
+        auth.user.access_token,
+      );
 
-        setEvents(updated);
-      } catch (err) {
-        console.error('Failed to complete pending attendee add:', err);
-      }
+      setEvents(updated);
     };
 
     void completePendingAdd();
-  }, [auth.isAuthenticated, auth.user?.access_token]);
+  }, [auth.isLoading, auth.isAuthenticated, auth.user?.access_token]);
 
   const handleAddAttendee = async (
     eventId: number,
