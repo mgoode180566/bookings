@@ -150,6 +150,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const completePendingAdd = async () => {
+      console.log('Auth state changed:', { isLoading: auth.isLoading, isAuthenticated: auth.isAuthenticated, user: auth.user });
+      console.log('redirect_uri', import.meta.env.VITE_COGNITO_REDIRECT_URI);
       if (auth.isLoading || !auth.isAuthenticated || !auth.user?.access_token) {
         return;
       }
