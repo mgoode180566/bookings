@@ -27,3 +27,8 @@ export interface TrackdayEvent {
   timeOfDay: TimeOfDay;
   groups: Group[];
 }
+
+export interface PendingAddAttendee {
+  eventId: number;
+  skillLevel: SkillLevel;
+}

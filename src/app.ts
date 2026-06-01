@@ -3,7 +3,6 @@ import cors from 'cors';
 import type { SkillLevel } from './types';
 import { readEvents, readParticipants, writeEvents } from './storage';
 import { AuthenticatedRequest, requireAuth } from './auth';
-// import { readEvents, writeEvents, readParticipants } from './storage';
 
 const ALLOWED_SKILL_LEVELS: SkillLevel[] = ['Novice', 'Intermediate', 'Advanced', 'CB500'];
 
@@ -133,11 +132,11 @@ app.post(
   requireAuth,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
+      console.log('Authenticated user:', req.user);
       const eventId = Number(req.params.eventId);
       const skillLevel = req.params.skillLevel as SkillLevel;
 
       const userId = req.user!.sub;
-      const userName = req.user!.username ?? req.user!.email ?? userId;
 
       const events = await readEvents();
       const event = events.find((e) => e.id === eventId);
@@ -167,7 +166,7 @@ app.post(
 
       group.attendees.push({
         userId: userId,
-        name: userName,
+        name: `User ${userId.substring(0, 6)}`,
       });
 
       await writeEvents(events);

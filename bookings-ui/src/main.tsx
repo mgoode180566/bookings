@@ -8,7 +8,7 @@ import App from './App.tsx';
 const cognitoAuthConfig = {
   authority: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_UxVTZvAJj',
   client_id: '44030ivk5s3n5i4c6u1a7du0tv',
-  redirect_uri: window.location.origin,
+  redirect_uri: import.meta.env.VITE_COGNITO_REDIRECT_URI,
   response_type: 'code',
   scope: 'openid email profile',
 };

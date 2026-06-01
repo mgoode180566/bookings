@@ -4,7 +4,7 @@ import { CssBaseline, ThemeProvider, createTheme, responsiveFontSizes, Container
 import EventList from './components/EventList';
 import CreateEventDialog from './components/CreateEventDialog';
 import { fetchEvents, addAttendeeToGroup, removeAttendeeFromGroup, createEvent } from './api/api';
-import type { TrackdayEvent, SkillLevel } from './types';
+import type { TrackdayEvent, SkillLevel, PendingAddAttendee } from './types';
 import { useAuth } from 'react-oidc-context';
 
 const rawTheme = createTheme({
@@ -149,15 +149,37 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    fetchEvents()
-      .then((evts) => {
-        setEvents(evts);
-        setError(null);
-      })
-      .catch(() => setError('Could not connect to the server. Make sure the backend is running.'))
-      .finally(() => setLoading(false));
-  }, []);
+    const completePendingAdd = async () => {
+      console.log('Checking for pending attendee add... ', auth);
+      if (!auth.isAuthenticated || !auth.user?.access_token) {
+        return;
+      }
+
+      const pending = sessionStorage.getItem('pendingAddAttendee');
+
+      if (!pending) {
+        return;
+      }
+
+      sessionStorage.removeItem('pendingAddAttendee');
+
+      const { eventId, skillLevel } = JSON.parse(pending) as PendingAddAttendee;
+
+      try {
+        const updated = await addAttendeeToGroup(
+          eventId,
+          skillLevel,
+          auth.user.access_token,
+        );
+
+        setEvents(updated);
+      } catch (err) {
+        console.error('Failed to complete pending attendee add:', err);
+      }
+    };
+
+    void completePendingAdd();
+  }, [auth.isAuthenticated, auth.user?.access_token]);
 
   const handleAddAttendee = async (
     eventId: number,
@@ -165,6 +187,11 @@ const App: React.FC = () => {
   ) => {
     try {
       if (!auth.isAuthenticated) {
+        sessionStorage.setItem(
+          'pendingAddAttendee',
+          JSON.stringify({ eventId, skillLevel }),
+        );
+
         await auth.signinRedirect({
           extraQueryParams: {
             identity_provider: 'Facebook',
