@@ -14,11 +14,6 @@ const ROOT_URL =
   (import.meta.env.VITE_API_ROOT_URL as string | undefined) ??
   'http://localhost:3001';
 
-const getAccessToken = (): string => {
-  // Tokens are now stored in httpOnly cookies, so we don't need to manage them in frontend
-  return '';
-};
-
 export const fetchEvents = async (): Promise<TrackdayEvent[]> => {
   const res = await fetch(`${BASE_URL}/events`);
   if (!res.ok) throw new Error('Failed to fetch events');
