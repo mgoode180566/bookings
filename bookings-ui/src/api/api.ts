@@ -7,7 +7,6 @@ export interface CreateEventInput {
   organiser: string;
   groups: SkillLevel[];
 }
-
 // In production set VITE_API_URL to your deployed backend URL
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api';
 const ROOT_URL =
