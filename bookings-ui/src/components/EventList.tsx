@@ -43,9 +43,16 @@ interface EventItemProps {
   onAddAttendee: (eventId: number, skillLevel: SkillLevel) => void;
   onRemoveAttendee: (eventId: number, skillLevel: SkillLevel) => void;
   canAddAttendee: boolean;
+  currentUserId?: string;
 }
 
-const EventItem: React.FC<EventItemProps> = ({ event, onAddAttendee, onRemoveAttendee, canAddAttendee }) => {
+const EventItem: React.FC<EventItemProps> = ({
+  event,
+  onAddAttendee,
+  onRemoveAttendee,
+  canAddAttendee,
+  currentUserId,
+}) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const headingText = event.organiser ? `${event.organiser}: ${event.venue}` : event.title;
   const formattedDate = new Date(event.date).toLocaleDateString('en-GB', {
@@ -57,6 +64,13 @@ const EventItem: React.FC<EventItemProps> = ({ event, onAddAttendee, onRemoveAtt
 
   const totalAttendees = event.groups.reduce((sum, g) => sum + g.attendees.length, 0);
   const isDay = event.timeOfDay === 'Day';
+  const isAlreadyAttending = Boolean(
+    currentUserId &&
+      event.groups.some((group) =>
+        group.attendees.some((attendee) => attendee.userId === currentUserId),
+      ),
+  );
+  const canAddForEvent = canAddAttendee && !isAlreadyAttending;
 
   return (
     <Accordion
@@ -249,10 +263,10 @@ const EventItem: React.FC<EventItemProps> = ({ event, onAddAttendee, onRemoveAtt
             size="small"
             startIcon={<PersonAddIcon sx={{ fontSize: '15px !important' }} />}
             onClick={() => {
-              if (!canAddAttendee) return;
+              if (!canAddForEvent) return;
               setDialogOpen(true);
             }}
-            disabled={!canAddAttendee}
+            disabled={!canAddForEvent}
             sx={{
               background: 'linear-gradient(135deg, #6366f1, #818cf8)',
               color: '#fff',
@@ -275,12 +289,14 @@ const EventItem: React.FC<EventItemProps> = ({ event, onAddAttendee, onRemoveAtt
           >
             Add Participant
           </Button>
-          {!canAddAttendee && (
+          {!canAddForEvent && (
             <Typography
               variant="caption"
               sx={{ display: 'block', mt: 1, color: 'rgba(255,255,255,0.35)' }}
             >
-              Sign in to add yourself to this event
+              {isAlreadyAttending
+                ? 'You are already attending this event'
+                : 'Sign in to add yourself to this event'}
             </Typography>
           )}
         </Box>
@@ -300,9 +316,16 @@ interface EventListProps {
   onAddAttendee: (eventId: number, skillLevel: SkillLevel) => void;
   onRemoveAttendee: (eventId: number, skillLevel: SkillLevel) => void;
   canAddAttendee: boolean;
+  currentUserId?: string;
 }
 
-const EventList: React.FC<EventListProps> = ({ events, onAddAttendee, onRemoveAttendee, canAddAttendee }) => {
+const EventList: React.FC<EventListProps> = ({
+  events,
+  onAddAttendee,
+  onRemoveAttendee,
+  canAddAttendee,
+  currentUserId,
+}) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {events.map((event) => (
@@ -312,6 +335,7 @@ const EventList: React.FC<EventListProps> = ({ events, onAddAttendee, onRemoveAt
           onAddAttendee={onAddAttendee}
           onRemoveAttendee={onRemoveAttendee}
           canAddAttendee={canAddAttendee}
+          currentUserId={currentUserId}
         />
       ))}
     </Box>

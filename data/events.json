@@ -58,6 +58,11 @@
           {
             "id": 2,
             "name": "Afif"
+          },
+          {
+            "userId": "10163152597626588",
+            "name": "Michael Goode",
+            "picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10163152597626588&height=50&width=50&ext=1784721619&hash=AfubD4jfpAhFV5_dV4ry2uNE"
           }
         ]
       },
@@ -104,7 +109,13 @@
       {
         "id": 10,
         "skillLevel": "Advanced",
-        "attendees": []
+        "attendees": [
+          {
+            "userId": "10163152597626588",
+            "name": "Michael Goode",
+            "picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10163152597626588&height=50&width=50&ext=1784721619&hash=AfubD4jfpAhFV5_dV4ry2uNE"
+          }
+        ]
       },
       {
         "id": 11,

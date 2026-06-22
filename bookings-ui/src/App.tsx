@@ -410,6 +410,7 @@ const App: React.FC = () => {
                 onAddAttendee={handleAddAttendee}
                 onRemoveAttendee={handleRemoveAttendee}
                 canAddAttendee={Boolean(user)}
+                currentUserId={user?.id}
               />
             )}
             <CreateEventDialog
