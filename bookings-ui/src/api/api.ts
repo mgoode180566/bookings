@@ -14,15 +14,31 @@ const ROOT_URL =
   (import.meta.env.VITE_API_ROOT_URL as string | undefined) ??
   'http://localhost:3001';
 
+const NETWORK_ERROR_MESSAGE =
+  'Cannot reach backend. Check API URL, CORS, and backend health.';
+
+const parseErrorMessage = async (res: Response, fallback: string) => {
+  const err = await res.json().catch(() => ({ error: res.statusText }));
+  return (err as { error?: string }).error || fallback;
+};
+
+const safeFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  try {
+    return await fetch(input, init);
+  } catch {
+    throw new Error(NETWORK_ERROR_MESSAGE);
+  }
+};
+
 export const fetchEvents = async (): Promise<TrackdayEvent[]> => {
-  const res = await fetch(`${BASE_URL}/events`);
-  if (!res.ok) throw new Error('Failed to fetch events');
+  const res = await safeFetch(`${BASE_URL}/events`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res, 'Failed to fetch events'));
   return res.json() as Promise<TrackdayEvent[]>;
 };
 
 export const fetchParticipants = async (): Promise<Participant[]> => {
-  const res = await fetch(`${BASE_URL}/participants`);
-  if (!res.ok) throw new Error('Failed to fetch participants');
+  const res = await safeFetch(`${BASE_URL}/participants`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res, 'Failed to fetch participants'));
   return res.json() as Promise<Participant[]>;
 };
 
@@ -30,7 +46,7 @@ export const removeAttendeeFromGroup = async (
   eventId: number,
   skillLevel: SkillLevel,
 ): Promise<TrackdayEvent[]> => {
-  const res = await fetch(
+  const res = await safeFetch(
     `${BASE_URL}/events/${eventId}/groups/${encodeURIComponent(skillLevel)}/attendees/self`,
     {
       method: 'DELETE',
@@ -38,8 +54,7 @@ export const removeAttendeeFromGroup = async (
     },
   );
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error: string }).error);
+    throw new Error(await parseErrorMessage(res, 'Failed to remove attendee'));
   }
   return res.json() as Promise<TrackdayEvent[]>;
 };
@@ -49,7 +64,7 @@ export const addAttendeeToGroup = async (
   skillLevel: SkillLevel,
   _accessToken: string,
 ): Promise<TrackdayEvent[]> => {
-  const res = await fetch(
+  const res = await safeFetch(
     `${BASE_URL}/events/${eventId}/groups/${encodeURIComponent(skillLevel)}/attendees`,
     {
       method: 'POST',
@@ -58,8 +73,7 @@ export const addAttendeeToGroup = async (
   );
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error: string }).error);
+    throw new Error(await parseErrorMessage(res, 'Failed to add attendee'));
   }
 
   return res.json() as Promise<TrackdayEvent[]>;
@@ -67,7 +81,7 @@ export const addAttendeeToGroup = async (
 export const createEvent = async (
   payload: CreateEventInput,
 ): Promise<TrackdayEvent[]> => {
-  const res = await fetch(`${BASE_URL}/createevent`, {
+  const res = await safeFetch(`${BASE_URL}/createevent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -75,8 +89,7 @@ export const createEvent = async (
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error: string }).error);
+    throw new Error(await parseErrorMessage(res, 'Failed to create event'));
   }
 
   return res.json() as Promise<TrackdayEvent[]>;
@@ -94,17 +107,17 @@ export function loginWithFacebook() {
 }
 
 export async function fetchCurrentUser(): Promise<AuthUser | null> {
-  const res = await fetch(`${ROOT_URL}/auth/me`, {
+  const res = await safeFetch(`${ROOT_URL}/auth/me`, {
     credentials: 'include',
   });
 
-  if (!res.ok) throw new Error('Failed to fetch current user');
+  if (!res.ok) throw new Error(await parseErrorMessage(res, 'Failed to fetch current user'));
 
   return res.json();
 }
 
 export async function logout() {
-  return fetch(`${ROOT_URL}/auth/logout`, {
+  return safeFetch(`${ROOT_URL}/auth/logout`, {
     method: 'POST',
     credentials: 'include',
   });

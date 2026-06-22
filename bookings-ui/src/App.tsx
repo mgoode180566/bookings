@@ -156,11 +156,18 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const loadInitialData = async () => {
+      let currentUser: AuthUser | null = null;
+
       try {
         // Check if user is logged in
-        const currentUser = await fetchCurrentUser().catch(() => null);
+        currentUser = await fetchCurrentUser().catch(() => null);
         setUser(currentUser);
+      } finally {
+        // Keep auth controls responsive even if event loading is slow.
+        setIsCheckingAuth(false);
+      }
 
+      try {
         // Load events
         const events = await fetchEvents();
         setEvents(events);
@@ -178,10 +185,11 @@ const App: React.FC = () => {
         }
       } catch (err) {
         console.error('Failed to load initial data:', err);
-        setError('Failed to load data');
+        const message =
+          err instanceof Error ? err.message : 'Failed to load data';
+        setError(message);
       } finally {
         setLoading(false);
-        setIsCheckingAuth(false);
       }
     };
 
@@ -333,22 +341,22 @@ const App: React.FC = () => {
                   </Button>
                 )}
 
-                {!isCheckingAuth &&
-                  (user ? (
-                    <Button variant="outlined" onClick={async () => {
-                      await logout();
-                      setUser(null);
-                    }}>
-                      Sign out
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outlined"
-                      onClick={loginWithFacebook}
-                    >
-                      Sign in
-                    </Button>
-                  ))}
+                {user ? (
+                  <Button variant="outlined" onClick={async () => {
+                    await logout();
+                    setUser(null);
+                  }}>
+                    Sign out
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outlined"
+                    onClick={loginWithFacebook}
+                    disabled={isCheckingAuth}
+                  >
+                    {isCheckingAuth ? 'Checking...' : 'Sign in'}
+                  </Button>
+                )}
               </Box>
             </Box>
             <Typography
