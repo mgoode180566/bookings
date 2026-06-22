@@ -1,10 +1,16 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { CssBaseline, ThemeProvider, createTheme, responsiveFontSizes, Container, Typography, Box, CircularProgress, Alert, Button } from '@mui/material';
+import { CssBaseline, ThemeProvider, createTheme, responsiveFontSizes, Container, Typography, Box, CircularProgress, Alert, Button, Avatar } from '@mui/material';
 import EventList from './components/EventList';
 import CreateEventDialog from './components/CreateEventDialog';
-import { fetchEvents, fetchParticipants, addAttendeeToGroup, removeAttendeeFromGroup, createEvent } from './api/api';
-import type { TrackdayEvent, SkillLevel, Participant } from './types';
+import { fetchEvents, addAttendeeToGroup, removeAttendeeFromGroup, createEvent } from './api/api';
+import type { TrackdayEvent, SkillLevel } from './types';
+import {
+  fetchCurrentUser,
+  loginWithFacebook,
+  logout,
+  type AuthUser,
+} from './api/api';
 
 const rawTheme = createTheme({
   palette: {
@@ -141,31 +147,62 @@ const theme = responsiveFontSizes(rawTheme, { factor: 2 });
 
 const App: React.FC = () => {
   const [events, setEvents] = useState<TrackdayEvent[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
   const [latestFirst, setLatestFirst] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    Promise.all([fetchEvents(), fetchParticipants()])
-      .then(([evts, parts]) => {
-        setEvents(evts);
-        setParticipants(parts);
-        setError(null);
-      })
-      .catch(() => setError('Could not connect to the server. Make sure the backend is running.'))
-      .finally(() => setLoading(false));
+    const loadInitialData = async () => {
+      try {
+        // Check if user is logged in
+        const currentUser = await fetchCurrentUser().catch(() => null);
+        setUser(currentUser);
+
+        // Load events
+        const events = await fetchEvents();
+        setEvents(events);
+
+        // Handle pending attendee add
+        const pending = sessionStorage.getItem('pendingAddAttendee');
+        if (pending && currentUser) {
+          sessionStorage.removeItem('pendingAddAttendee');
+          const { eventId, skillLevel } = JSON.parse(pending) as {
+            eventId: number;
+            skillLevel: SkillLevel;
+          };
+          const updated = await addAttendeeToGroup(eventId, skillLevel, '');
+          setEvents(updated);
+        }
+      } catch (err) {
+        console.error('Failed to load initial data:', err);
+        setError('Failed to load data');
+      } finally {
+        setLoading(false);
+        setIsCheckingAuth(false);
+      }
+    };
+
+    void loadInitialData();
   }, []);
 
   const handleAddAttendee = async (
     eventId: number,
     skillLevel: SkillLevel,
-    participantId: number,
   ) => {
     try {
-      const updated = await addAttendeeToGroup(eventId, skillLevel, participantId);
+      if (!user) {
+        sessionStorage.setItem(
+          'pendingAddAttendee',
+          JSON.stringify({ eventId, skillLevel }),
+        );
+        loginWithFacebook();
+        return;
+      }
+
+      const updated = await addAttendeeToGroup(eventId, skillLevel, '');
       setEvents(updated);
     } catch (err) {
       console.error('Failed to add attendee:', err);
@@ -175,10 +212,9 @@ const App: React.FC = () => {
   const handleRemoveAttendee = async (
     eventId: number,
     skillLevel: SkillLevel,
-    attendeeId: number,
   ) => {
     try {
-      const updated = await removeAttendeeFromGroup(eventId, skillLevel, attendeeId);
+      const updated = await removeAttendeeFromGroup(eventId, skillLevel);
       setEvents(updated);
     } catch (err) {
       console.error('Failed to remove attendee:', err);
@@ -200,17 +236,21 @@ const App: React.FC = () => {
     }
   };
 
+  const visibleEvents = useMemo(() => {
+    return events.filter((event) => event.isVisible !== false);
+  }, [events]);
+
   const totalParticipants = new Set(
-    events.flatMap(e => e.groups.flatMap(g => g.attendees.map(a => a.name)))
+    visibleEvents.flatMap((e) => e.groups.flatMap((g) => g.attendees.map((a) => a.name))),
   ).size;
 
   const sortedEvents = useMemo(() => {
-    return [...events].sort((a, b) => {
+    return [...visibleEvents].sort((a, b) => {
       const aTime = new Date(a.date).getTime();
       const bTime = new Date(b.date).getTime();
       return latestFirst ? bTime - aTime : aTime - bTime;
     });
-  }, [events, latestFirst]);
+  }, [visibleEvents, latestFirst]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -236,28 +276,80 @@ const App: React.FC = () => {
                 }}
               >
                 Trackday Calendar
+                {/* {user ? (
+                  <Button onClick={async () => {
+                    await logout();
+                    setUser(null);
+                  }}>
+                    Logout {user.name}
+                  </Button>
+                ) : (
+                  <Button onClick={loginWithFacebook}>
+                    Login with Facebook
+                  </Button>
+                )} */}
               </Typography>
-              <Button
-                variant="contained"
-                onClick={() => setCreateDialogOpen(true)}
-                sx={{
-                  minWidth: 38,
-                  width: 38,
-                  height: 38,
-                  px: 0,
-                  borderRadius: '10px',
-                  fontSize: '1.25rem',
-                  lineHeight: 1,
-                  background: 'linear-gradient(135deg, #14b8a6, #22d3ee)',
-                  color: '#022c22',
-                  fontWeight: 800,
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
-                  },
-                }}
-              >
-                +
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {user?.picture ? (
+                    <Avatar
+                      src={user.picture}
+                      alt={user.name}
+                      sx={{ width: 30, height: 30, border: '1px solid rgba(129,140,248,0.45)' }}
+                    />
+                  ) : (
+                    <Avatar sx={{ width: 30, height: 30, bgcolor: 'rgba(129,140,248,0.22)' }}>
+                      {(user?.name || 'M').charAt(0).toUpperCase()}
+                    </Avatar>
+                  )}
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'rgba(255,255,255,0.72)', fontWeight: 600, whiteSpace: 'nowrap' }}
+                  >
+                    {user ? `Signed in as ${user.name}` : 'Signed in as guest'}
+                  </Typography>
+                </Box>
+                {user && (
+                  <Button
+                    variant="contained"
+                    onClick={() => setCreateDialogOpen(true)}
+                    sx={{
+                      minWidth: 38,
+                      width: 38,
+                      height: 38,
+                      px: 0,
+                      borderRadius: '10px',
+                      fontSize: '1.25rem',
+                      lineHeight: 1,
+                      background: 'linear-gradient(135deg, #14b8a6, #22d3ee)',
+                      color: '#022c22',
+                      fontWeight: 800,
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
+                      },
+                    }}
+                  >
+                    +
+                  </Button>
+                )}
+
+                {!isCheckingAuth &&
+                  (user ? (
+                    <Button variant="outlined" onClick={async () => {
+                      await logout();
+                      setUser(null);
+                    }}>
+                      Sign out
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      onClick={loginWithFacebook}
+                    >
+                      Sign in
+                    </Button>
+                  ))}
+              </Box>
             </Box>
             <Typography
               variant="h4"
@@ -278,7 +370,7 @@ const App: React.FC = () => {
               variant="body2"
               sx={{ color: 'rgba(255,255,255,0.3)', mb: 4, fontWeight: 500 }}
             >
-              {events.length} events · {totalParticipants} participants
+              {visibleEvents.length} events · {totalParticipants} participants
             </Typography>
             <Box sx={{ mb: 3 }}>
               <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
@@ -321,9 +413,10 @@ const App: React.FC = () => {
             {!loading && !error && (
               <EventList
                 events={sortedEvents}
-                allParticipants={participants}
                 onAddAttendee={handleAddAttendee}
                 onRemoveAttendee={handleRemoveAttendee}
+                canAddAttendee={Boolean(user)}
+                currentUserId={user?.id}
               />
             )}
             <CreateEventDialog

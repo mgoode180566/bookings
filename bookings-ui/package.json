@@ -16,8 +16,10 @@
     "@mui/icons-material": "^9.0.1",
     "@mui/material": "^9.0.1",
     "@vendia/serverless-express": "^4.12.6",
+    "oidc-client-ts": "^3.5.0",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "react-oidc-context": "^3.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

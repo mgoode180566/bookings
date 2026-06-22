@@ -2,8 +2,9 @@ export type TimeOfDay = 'Day' | 'Evening';
 export type SkillLevel = 'Novice' | 'Intermediate' | 'Advanced' | 'CB500';
 
 export interface Attendee {
-  id: number;
+  userId: string;
   name: string;
+  picture?: string;
 }
 
 export interface Group {
@@ -19,6 +20,7 @@ export interface TrackdayEvent {
   organiser?: string;
   date: string;
   timeOfDay: TimeOfDay;
+  isVisible?: boolean;
   groups: Group[];
 }
 

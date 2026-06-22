@@ -15,14 +15,12 @@ import {
 } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
 import type { TrackdayEvent, SkillLevel } from '../types';
-import type { Participant } from '../types';
 
 interface AddAttendeeDialogProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (skillLevel: SkillLevel, participantId: number) => void;
+  onAdd: (skillLevel: SkillLevel) => void;
   event: TrackdayEvent;
-  allParticipants: Participant[];
 }
 
 const AddAttendeeDialog: React.FC<AddAttendeeDialogProps> = ({
@@ -30,29 +28,22 @@ const AddAttendeeDialog: React.FC<AddAttendeeDialogProps> = ({
   onClose,
   onAdd,
   event,
-  allParticipants,
 }) => {
   const [skillLevel, setSkillLevel] = useState<SkillLevel | ''>('');
-  const [participantId, setParticipantId] = useState<number | ''>('');
 
   const fullScreen = useMediaQuery('(max-width:600px)');
   const eventSkillLevels = event.groups.map((group) => group.skillLevel);
 
-  const bookedIds = new Set(event.groups.flatMap((g) => g.attendees.map((a) => a.id)));
-  const availableParticipants = allParticipants.filter((p) => !bookedIds.has(p.id));
-
   const handleAdd = () => {
-    if (skillLevel && participantId !== '') {
-      onAdd(skillLevel, participantId as number);
+    if (skillLevel) {
+      onAdd(skillLevel);
       setSkillLevel('');
-      setParticipantId('');
       onClose();
     }
   };
 
   const handleClose = () => {
     setSkillLevel('');
-    setParticipantId('');
     onClose();
   };
 
@@ -84,24 +75,6 @@ const AddAttendeeDialog: React.FC<AddAttendeeDialogProps> = ({
               ))}
             </Select>
           </FormControl>
-          <FormControl fullWidth>
-            <InputLabel id="participant-label">Participant</InputLabel>
-            <Select
-              labelId="participant-label"
-              label="Participant"
-              value={participantId}
-              onChange={(e: SelectChangeEvent<number>) =>
-                setParticipantId(e.target.value as number)
-              }
-              disabled={availableParticipants.length === 0}
-            >
-              {availableParticipants.map((p) => (
-                <MenuItem key={p.id} value={p.id}>
-                  {p.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
         </Box>
       </DialogContent>
       <DialogActions>
@@ -109,7 +82,7 @@ const AddAttendeeDialog: React.FC<AddAttendeeDialogProps> = ({
         <Button
           variant="contained"
           onClick={handleAdd}
-          disabled={!skillLevel || participantId === ''}
+          disabled={!skillLevel}
           sx={{
             background: 'linear-gradient(135deg, #6366f1, #818cf8)',
             fontWeight: 600,
@@ -120,7 +93,7 @@ const AddAttendeeDialog: React.FC<AddAttendeeDialogProps> = ({
             },
           }}
         >
-          Add
+          Add Me
         </Button>
       </DialogActions>
     </Dialog>

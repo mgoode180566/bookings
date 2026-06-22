@@ -10,6 +10,14 @@ export interface CreateEventInput {
 
 // In production set VITE_API_URL to your deployed backend URL
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api';
+const ROOT_URL =
+  (import.meta.env.VITE_API_ROOT_URL as string | undefined) ??
+  'http://localhost:3001';
+
+const getAccessToken = (): string => {
+  // Tokens are now stored in httpOnly cookies, so we don't need to manage them in frontend
+  return '';
+};
 
 export const fetchEvents = async (): Promise<TrackdayEvent[]> => {
   const res = await fetch(`${BASE_URL}/events`);
@@ -26,11 +34,13 @@ export const fetchParticipants = async (): Promise<Participant[]> => {
 export const removeAttendeeFromGroup = async (
   eventId: number,
   skillLevel: SkillLevel,
-  attendeeId: number,
 ): Promise<TrackdayEvent[]> => {
   const res = await fetch(
-    `${BASE_URL}/events/${eventId}/groups/${encodeURIComponent(skillLevel)}/attendees/${attendeeId}`,
-    { method: 'DELETE' },
+    `${BASE_URL}/events/${eventId}/groups/${encodeURIComponent(skillLevel)}/attendees/self`,
+    {
+      method: 'DELETE',
+      credentials: 'include',
+    },
   );
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -42,29 +52,30 @@ export const removeAttendeeFromGroup = async (
 export const addAttendeeToGroup = async (
   eventId: number,
   skillLevel: SkillLevel,
-  participantId: number,
+  _accessToken: string,
 ): Promise<TrackdayEvent[]> => {
   const res = await fetch(
     `${BASE_URL}/events/${eventId}/groups/${encodeURIComponent(skillLevel)}/attendees`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ participantId }),
+      credentials: 'include',
     },
   );
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error((err as { error: string }).error);
   }
+
   return res.json() as Promise<TrackdayEvent[]>;
 };
-
 export const createEvent = async (
   payload: CreateEventInput,
 ): Promise<TrackdayEvent[]> => {
   const res = await fetch(`${BASE_URL}/createevent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(payload),
   });
 
@@ -75,3 +86,31 @@ export const createEvent = async (
 
   return res.json() as Promise<TrackdayEvent[]>;
 };
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email?: string;
+  picture?: string;
+}
+
+export function loginWithFacebook() {
+  window.location.href = `${ROOT_URL}/auth/facebook`;
+}
+
+export async function fetchCurrentUser(): Promise<AuthUser | null> {
+  const res = await fetch(`${ROOT_URL}/auth/me`, {
+    credentials: 'include',
+  });
+
+  if (!res.ok) throw new Error('Failed to fetch current user');
+
+  return res.json();
+}
+
+export async function logout() {
+  return fetch(`${ROOT_URL}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+}

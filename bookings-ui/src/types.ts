@@ -8,8 +8,9 @@ export interface Participant {
 export type SkillLevel = 'Novice' | 'Intermediate' | 'Advanced' | 'CB500';
 
 export interface Attendee {
-  id: number;
+  userId: string;
   name: string;
+  picture?: string;
 }
 
 export interface Group {
@@ -25,5 +26,11 @@ export interface TrackdayEvent {
   organiser?: string;
   date: string; // ISO date string
   timeOfDay: TimeOfDay;
+  isVisible?: boolean;
   groups: Group[];
+}
+
+export interface PendingAddAttendee {
+  eventId: number;
+  skillLevel: SkillLevel;
 }

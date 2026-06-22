@@ -17,7 +17,8 @@
         "skillLevel": "CB500",
         "attendees": []
       }
-    ]
+    ],
+    "isVisible": false
   },
   {
     "id": 2,
@@ -37,7 +38,8 @@
         "skillLevel": "CB500",
         "attendees": []
       }
-    ]
+    ],
+    "isVisible": false
   },
   {
     "id": 3,
@@ -69,9 +71,16 @@
       {
         "id": 7,
         "skillLevel": "Advanced",
-        "attendees": []
+        "attendees": [
+          {
+            "userId": "10163152597626588",
+            "name": "Michael Goode",
+            "picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10163152597626588&height=50&width=50&ext=1784722631&hash=Aftyk916Ai7T1yQiKufWugg_"
+          }
+        ]
       }
-    ]
+    ],
+    "isVisible": true
   },
   {
     "id": 4,
@@ -104,7 +113,13 @@
       {
         "id": 10,
         "skillLevel": "Advanced",
-        "attendees": []
+        "attendees": [
+          {
+            "userId": "10163152597626588",
+            "name": "Michael Goode",
+            "picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10163152597626588&height=50&width=50&ext=1784721619&hash=AfubD4jfpAhFV5_dV4ry2uNE"
+          }
+        ]
       },
       {
         "id": 11,
@@ -117,6 +132,29 @@
           {
             "id": 7,
             "name": "Will"
+          }
+        ]
+      }
+    ],
+    "isVisible": true
+  },
+  {
+    "id": 5,
+    "title": "MSV Castle Coombe",
+    "venue": "Castle Coombe",
+    "organiser": "MSV",
+    "date": "2027-01-01",
+    "timeOfDay": "Day",
+    "isVisible": true,
+    "groups": [
+      {
+        "id": 12,
+        "skillLevel": "Novice",
+        "attendees": [
+          {
+            "userId": "10163152597626588",
+            "name": "Michael Goode",
+            "picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10163152597626588&height=50&width=50&ext=1784722631&hash=Aftyk916Ai7T1yQiKufWugg_"
           }
         ]
       }

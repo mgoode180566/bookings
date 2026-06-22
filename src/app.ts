@@ -1,10 +1,13 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import type { SkillLevel } from './types';
+import type { SkillLevel, TrackdayEvent } from './types';
 import { readEvents, readParticipants, writeEvents } from './storage';
-// import { readEvents, writeEvents, readParticipants } from './storage';
+import { AuthenticatedRequest, requireAuth } from './auth';
+import cookieParser from 'cookie-parser';
+import authRoutes from './auth/authRoutes';
 
 const ALLOWED_SKILL_LEVELS: SkillLevel[] = ['Novice', 'Intermediate', 'Advanced', 'CB500'];
+const EVENT_RETENTION_DAYS = 7;
 
 interface CreateEventRequestBody {
   venue: string;
@@ -14,9 +17,49 @@ interface CreateEventRequestBody {
   groups: SkillLevel[];
 }
 
+const isEventOlderThanRetention = (event: TrackdayEvent): boolean => {
+  const eventTimestamp = Date.parse(event.date);
+
+  if (Number.isNaN(eventTimestamp)) {
+    return false;
+  }
+
+  const retentionWindowMs = EVENT_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  return Date.now() - eventTimestamp > retentionWindowMs;
+};
+
+const readEventsWithVisibility = async (): Promise<TrackdayEvent[]> => {
+  const events = await readEvents();
+  let hasChanges = false;
+  const eventsWithVisibility = events.map((event) => {
+    const isVisible = !isEventOlderThanRetention(event);
+
+    if (event.isVisible !== isVisible) {
+      hasChanges = true;
+      return { ...event, isVisible };
+    }
+
+    return event;
+  });
+
+  if (hasChanges) {
+    await writeEvents(eventsWithVisibility);
+  }
+
+  return eventsWithVisibility;
+};
+
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+}));
+
+
+app.use(cookieParser());
+app.use('/auth', authRoutes);
+
 app.use(express.json());
 
 app.get('/health', (_req: Request, res: Response) => {
@@ -30,7 +73,7 @@ app.get('/api/message', (_req: Request, res: Response) => {
 // GET /api/events
 app.get('/api/events', async (_req: Request, res: Response) => {
   try {
-    const events = await readEvents();
+    const events = await readEventsWithVisibility();
     res.json(events);
   } catch (error) {
     console.error(error);
@@ -50,10 +93,13 @@ app.get('/api/participants', async (_req: Request, res: Response) => {
 });
 
 // POST /api/createevent
-app.post('/api/createevent', async (req: Request, res: Response) => {
-  try {
-    const { venue, date, timeOfDay, organiser, groups } =
-      req.body as CreateEventRequestBody;
+app.post(
+  '/api/createevent',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { venue, date, timeOfDay, organiser, groups } =
+        req.body as CreateEventRequestBody;
 
     if (!venue || typeof venue !== 'string') {
       res.status(400).json({ error: 'Venue is required' });
@@ -92,7 +138,7 @@ app.post('/api/createevent', async (req: Request, res: Response) => {
       return;
     }
 
-    const events = await readEvents();
+    const events = await readEventsWithVisibility();
     const nextEventId = events.length > 0 ? Math.max(...events.map((event) => event.id)) + 1 : 1;
     const maxGroupId =
       events.length > 0
@@ -109,6 +155,7 @@ app.post('/api/createevent', async (req: Request, res: Response) => {
       organiser,
       date,
       timeOfDay,
+      isVisible: true,
       groups: uniqueGroups.map((skillLevel, index) => ({
         id: maxGroupId + index + 1,
         skillLevel,
@@ -129,25 +176,25 @@ app.post('/api/createevent', async (req: Request, res: Response) => {
 // POST /api/events/:eventId/groups/:skillLevel/attendees
 app.post(
   '/api/events/:eventId/groups/:skillLevel/attendees',
-  async (req: Request, res: Response) => {
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
+      console.log('Authenticated user:', req.user);
       const eventId = Number(req.params.eventId);
       const skillLevel = req.params.skillLevel as SkillLevel;
-      const { participantId } = req.body as { participantId: number };
 
-      const participants = await readParticipants();
-      const participant = participants.find((p) => p.id === participantId);
+      const userId = req.user!.id;
 
-      if (!participant) {
-        res.status(404).json({ error: 'Participant not found' });
-        return;
-      }
-
-      const events = await readEvents();
+      const events = await readEventsWithVisibility();
       const event = events.find((e) => e.id === eventId);
 
       if (!event) {
         res.status(404).json({ error: 'Event not found' });
+        return;
+      }
+
+      if (event.isVisible === false) {
+        res.status(410).json({ error: 'Event is no longer available' });
         return;
       }
 
@@ -159,19 +206,20 @@ app.post(
       }
 
       const alreadyBooked = event.groups.some((g) =>
-        g.attendees.some((a) => a.id === participantId),
+        g.attendees.some((a) => a.userId === userId),
       );
 
       if (alreadyBooked) {
         res.status(409).json({
-          error: 'Participant already booked on this event',
+          error: 'You are already booked on this event',
         });
         return;
       }
 
       group.attendees.push({
-        id: participant.id,
-        name: participant.name,
+        userId: userId,
+        name: req.user!.name || `User ${userId.substring(0, 6)}`,
+        picture: req.user!.picture,
       });
 
       await writeEvents(events);
@@ -184,20 +232,26 @@ app.post(
   },
 );
 
-// DELETE /api/events/:eventId/groups/:skillLevel/attendees/:attendeeId
+// DELETE /api/events/:eventId/groups/:skillLevel/attendees/self
 app.delete(
-  '/api/events/:eventId/groups/:skillLevel/attendees/:attendeeId',
-  async (req: Request, res: Response) => {
+  '/api/events/:eventId/groups/:skillLevel/attendees/self',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const eventId = Number(req.params.eventId);
       const skillLevel = req.params.skillLevel as SkillLevel;
-      const attendeeId = Number(req.params.attendeeId);
+      const userId = req.user!.id;
 
-      const events = await readEvents();
+      const events = await readEventsWithVisibility();
       const event = events.find((e) => e.id === eventId);
 
       if (!event) {
         res.status(404).json({ error: 'Event not found' });
+        return;
+      }
+
+      if (event.isVisible === false) {
+        res.status(410).json({ error: 'Event is no longer available' });
         return;
       }
 
@@ -208,7 +262,7 @@ app.delete(
         return;
       }
 
-      const idx = group.attendees.findIndex((a) => a.id === attendeeId);
+      const idx = group.attendees.findIndex((a) => a.userId === userId);
 
       if (idx === -1) {
         res.status(404).json({ error: 'Attendee not found' });

@@ -22,7 +22,6 @@ import NightsStayIcon from '@mui/icons-material/NightsStay';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import CloseIcon from '@mui/icons-material/Close';
 import type { TrackdayEvent, SkillLevel } from '../types';
-import type { Participant } from '../types';
 import AddAttendeeDialog from './AddAttendeeDialog';
 
 const skillLevelGradient: Record<SkillLevel, string> = {
@@ -41,12 +40,19 @@ const getInitials = (name: string): string => {
 
 interface EventItemProps {
   event: TrackdayEvent;
-  allParticipants: Participant[];
-  onAddAttendee: (eventId: number, skillLevel: SkillLevel, participantId: number) => void;
-  onRemoveAttendee: (eventId: number, skillLevel: SkillLevel, attendeeId: number) => void;
+  onAddAttendee: (eventId: number, skillLevel: SkillLevel) => void;
+  onRemoveAttendee: (eventId: number, skillLevel: SkillLevel) => void;
+  canAddAttendee: boolean;
+  currentUserId?: string;
 }
 
-const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAttendee, onRemoveAttendee }) => {
+const EventItem: React.FC<EventItemProps> = ({
+  event,
+  onAddAttendee,
+  onRemoveAttendee,
+  canAddAttendee,
+  currentUserId,
+}) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const headingText = event.organiser ? `${event.organiser}: ${event.venue}` : event.title;
   const formattedDate = new Date(event.date).toLocaleDateString('en-GB', {
@@ -58,6 +64,13 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
 
   const totalAttendees = event.groups.reduce((sum, g) => sum + g.attendees.length, 0);
   const isDay = event.timeOfDay === 'Day';
+  const isAlreadyAttending = Boolean(
+    currentUserId &&
+      event.groups.some((group) =>
+        group.attendees.some((attendee) => attendee.userId === currentUserId),
+      ),
+  );
+  const canAddForEvent = canAddAttendee && !isAlreadyAttending;
 
   return (
     <Accordion
@@ -176,9 +189,9 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
                 <List dense disablePadding sx={{ pl: 0.5 }}>
                   {[...group.attendees]
                     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
-                    .map((attendee) => (
+                    .map((attendee, index) => (
                     <ListItem
-                      key={attendee.id}
+                      key={attendee.userId ?? `${attendee.name}-${index}`}
                       disableGutters
                       sx={{
                         py: 0.5,
@@ -189,6 +202,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
                       }}
                     >
                       <Avatar
+                        src={attendee.picture}
                         sx={{
                           width: 28,
                           height: 28,
@@ -212,23 +226,25 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
                           </Typography>
                         }
                       />
-                      <IconButton
-                        size="small"
-                        onClick={() => onRemoveAttendee(event.id, group.skillLevel, attendee.id)}
-                        sx={{
-                          ml: 'auto',
-                          color: 'rgba(255,255,255,0.2)',
-                          width: 26,
-                          height: 26,
-                          flexShrink: 0,
-                          '&:hover': {
-                            color: '#f87171',
-                            background: 'rgba(248,113,113,0.12)',
-                          },
-                        }}
-                      >
-                        <CloseIcon sx={{ fontSize: 13 }} />
-                      </IconButton>
+                      {currentUserId && attendee.userId === currentUserId && (
+                        <IconButton
+                          size="small"
+                          onClick={() => onRemoveAttendee(event.id, group.skillLevel)}
+                          sx={{
+                            ml: 'auto',
+                            color: 'rgba(255,255,255,0.2)',
+                            width: 26,
+                            height: 26,
+                            flexShrink: 0,
+                            '&:hover': {
+                              color: '#f87171',
+                              background: 'rgba(248,113,113,0.12)',
+                            },
+                          }}
+                        >
+                          <CloseIcon sx={{ fontSize: 13 }} />
+                        </IconButton>
+                      )}
                     </ListItem>
                   ))}
                 </List>
@@ -248,7 +264,11 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
             variant="contained"
             size="small"
             startIcon={<PersonAddIcon sx={{ fontSize: '15px !important' }} />}
-            onClick={() => setDialogOpen(true)}
+            onClick={() => {
+              if (!canAddForEvent) return;
+              setDialogOpen(true);
+            }}
+            disabled={!canAddForEvent}
             sx={{
               background: 'linear-gradient(135deg, #6366f1, #818cf8)',
               color: '#fff',
@@ -262,18 +282,32 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
                 background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
                 boxShadow: '0 4px 20px rgba(99,102,241,0.45)',
               },
+              '&.Mui-disabled': {
+                background: 'rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.3)',
+                boxShadow: 'none',
+              },
             }}
           >
             Add Participant
           </Button>
+          {!canAddForEvent && (
+            <Typography
+              variant="caption"
+              sx={{ display: 'block', mt: 1, color: 'rgba(255,255,255,0.35)' }}
+            >
+              {isAlreadyAttending
+                ? 'You are already attending this event'
+                : 'Sign in to add yourself to this event'}
+            </Typography>
+          )}
         </Box>
       </AccordionDetails>
       <AddAttendeeDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        onAdd={(skillLevel, participantId) => onAddAttendee(event.id, skillLevel, participantId)}
+        onAdd={(skillLevel) => onAddAttendee(event.id, skillLevel)}
         event={event}
-        allParticipants={allParticipants}
       />
     </Accordion>
   );
@@ -281,21 +315,29 @@ const EventItem: React.FC<EventItemProps> = ({ event, allParticipants, onAddAtte
 
 interface EventListProps {
   events: TrackdayEvent[];
-  allParticipants: Participant[];
-  onAddAttendee: (eventId: number, skillLevel: SkillLevel, participantId: number) => void;
-  onRemoveAttendee: (eventId: number, skillLevel: SkillLevel, attendeeId: number) => void;
+  onAddAttendee: (eventId: number, skillLevel: SkillLevel) => void;
+  onRemoveAttendee: (eventId: number, skillLevel: SkillLevel) => void;
+  canAddAttendee: boolean;
+  currentUserId?: string;
 }
 
-const EventList: React.FC<EventListProps> = ({ events, allParticipants, onAddAttendee, onRemoveAttendee }) => {
+const EventList: React.FC<EventListProps> = ({
+  events,
+  onAddAttendee,
+  onRemoveAttendee,
+  canAddAttendee,
+  currentUserId,
+}) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {events.map((event) => (
         <EventItem
           key={event.id}
           event={event}
-          allParticipants={allParticipants}
           onAddAttendee={onAddAttendee}
           onRemoveAttendee={onRemoveAttendee}
+          canAddAttendee={canAddAttendee}
+          currentUserId={currentUserId}
         />
       ))}
     </Box>
