@@ -20,6 +20,7 @@ export interface TrackdayEvent {
   organiser?: string;
   date: string;
   timeOfDay: TimeOfDay;
+  isVisible?: boolean;
   groups: Group[];
 }
 

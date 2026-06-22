@@ -1,12 +1,13 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import type { SkillLevel } from './types';
+import type { SkillLevel, TrackdayEvent } from './types';
 import { readEvents, readParticipants, writeEvents } from './storage';
 import { AuthenticatedRequest, requireAuth } from './auth';
 import cookieParser from 'cookie-parser';
 import authRoutes from './auth/authRoutes';
 
 const ALLOWED_SKILL_LEVELS: SkillLevel[] = ['Novice', 'Intermediate', 'Advanced', 'CB500'];
+const EVENT_RETENTION_DAYS = 7;
 
 interface CreateEventRequestBody {
   venue: string;
@@ -15,6 +16,38 @@ interface CreateEventRequestBody {
   organiser: string;
   groups: SkillLevel[];
 }
+
+const isEventOlderThanRetention = (event: TrackdayEvent): boolean => {
+  const eventTimestamp = Date.parse(event.date);
+
+  if (Number.isNaN(eventTimestamp)) {
+    return false;
+  }
+
+  const retentionWindowMs = EVENT_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  return Date.now() - eventTimestamp > retentionWindowMs;
+};
+
+const readEventsWithVisibility = async (): Promise<TrackdayEvent[]> => {
+  const events = await readEvents();
+  let hasChanges = false;
+  const eventsWithVisibility = events.map((event) => {
+    const isVisible = !isEventOlderThanRetention(event);
+
+    if (event.isVisible !== isVisible) {
+      hasChanges = true;
+      return { ...event, isVisible };
+    }
+
+    return event;
+  });
+
+  if (hasChanges) {
+    await writeEvents(eventsWithVisibility);
+  }
+
+  return eventsWithVisibility;
+};
 
 const app = express();
 
@@ -40,7 +73,7 @@ app.get('/api/message', (_req: Request, res: Response) => {
 // GET /api/events
 app.get('/api/events', async (_req: Request, res: Response) => {
   try {
-    const events = await readEvents();
+    const events = await readEventsWithVisibility();
     res.json(events);
   } catch (error) {
     console.error(error);
@@ -105,7 +138,7 @@ app.post(
       return;
     }
 
-    const events = await readEvents();
+    const events = await readEventsWithVisibility();
     const nextEventId = events.length > 0 ? Math.max(...events.map((event) => event.id)) + 1 : 1;
     const maxGroupId =
       events.length > 0
@@ -122,6 +155,7 @@ app.post(
       organiser,
       date,
       timeOfDay,
+      isVisible: true,
       groups: uniqueGroups.map((skillLevel, index) => ({
         id: maxGroupId + index + 1,
         skillLevel,
@@ -151,11 +185,16 @@ app.post(
 
       const userId = req.user!.id;
 
-      const events = await readEvents();
+      const events = await readEventsWithVisibility();
       const event = events.find((e) => e.id === eventId);
 
       if (!event) {
         res.status(404).json({ error: 'Event not found' });
+        return;
+      }
+
+      if (event.isVisible === false) {
+        res.status(410).json({ error: 'Event is no longer available' });
         return;
       }
 
@@ -203,11 +242,16 @@ app.delete(
       const skillLevel = req.params.skillLevel as SkillLevel;
       const userId = req.user!.id;
 
-      const events = await readEvents();
+      const events = await readEventsWithVisibility();
       const event = events.find((e) => e.id === eventId);
 
       if (!event) {
         res.status(404).json({ error: 'Event not found' });
+        return;
+      }
+
+      if (event.isVisible === false) {
+        res.status(410).json({ error: 'Event is no longer available' });
         return;
       }
 

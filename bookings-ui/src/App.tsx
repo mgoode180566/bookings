@@ -236,17 +236,21 @@ const App: React.FC = () => {
     }
   };
 
+  const visibleEvents = useMemo(() => {
+    return events.filter((event) => event.isVisible !== false);
+  }, [events]);
+
   const totalParticipants = new Set(
-    events.flatMap(e => e.groups.flatMap(g => g.attendees.map(a => a.name)))
+    visibleEvents.flatMap((e) => e.groups.flatMap((g) => g.attendees.map((a) => a.name))),
   ).size;
 
   const sortedEvents = useMemo(() => {
-    return [...events].sort((a, b) => {
+    return [...visibleEvents].sort((a, b) => {
       const aTime = new Date(a.date).getTime();
       const bTime = new Date(b.date).getTime();
       return latestFirst ? bTime - aTime : aTime - bTime;
     });
-  }, [events, latestFirst]);
+  }, [visibleEvents, latestFirst]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -305,27 +309,29 @@ const App: React.FC = () => {
                     {user ? `Signed in as ${user.name}` : 'Signed in as guest'}
                   </Typography>
                 </Box>
-                <Button
-                  variant="contained"
-                  onClick={() => setCreateDialogOpen(true)}
-                  sx={{
-                    minWidth: 38,
-                    width: 38,
-                    height: 38,
-                    px: 0,
-                    borderRadius: '10px',
-                    fontSize: '1.25rem',
-                    lineHeight: 1,
-                    background: 'linear-gradient(135deg, #14b8a6, #22d3ee)',
-                    color: '#022c22',
-                    fontWeight: 800,
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
-                    },
-                  }}
-                >
-                  +
-                </Button>
+                {user && (
+                  <Button
+                    variant="contained"
+                    onClick={() => setCreateDialogOpen(true)}
+                    sx={{
+                      minWidth: 38,
+                      width: 38,
+                      height: 38,
+                      px: 0,
+                      borderRadius: '10px',
+                      fontSize: '1.25rem',
+                      lineHeight: 1,
+                      background: 'linear-gradient(135deg, #14b8a6, #22d3ee)',
+                      color: '#022c22',
+                      fontWeight: 800,
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
+                      },
+                    }}
+                  >
+                    +
+                  </Button>
+                )}
 
                 {!isCheckingAuth &&
                   (user ? (
@@ -364,7 +370,7 @@ const App: React.FC = () => {
               variant="body2"
               sx={{ color: 'rgba(255,255,255,0.3)', mb: 4, fontWeight: 500 }}
             >
-              {events.length} events · {totalParticipants} participants
+              {visibleEvents.length} events · {totalParticipants} participants
             </Typography>
             <Box sx={{ mb: 3 }}>
               <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>

@@ -26,6 +26,7 @@ export interface TrackdayEvent {
   organiser?: string;
   date: string; // ISO date string
   timeOfDay: TimeOfDay;
+  isVisible?: boolean;
   groups: Group[];
 }
 
