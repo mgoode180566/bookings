@@ -10,6 +10,9 @@ export interface CreateEventInput {
 
 // In production set VITE_API_URL to your deployed backend URL
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api';
+const ROOT_URL =
+  (import.meta.env.VITE_API_ROOT_URL as string | undefined) ??
+  'http://localhost:3001';
 
 const getAccessToken = (): string => {
   const token = localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
@@ -90,3 +93,31 @@ export const createEvent = async (
 
   return res.json() as Promise<TrackdayEvent[]>;
 };
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email?: string;
+  picture?: string;
+}
+
+export function loginWithFacebook() {
+  window.location.href = `${ROOT_URL}/auth/facebook`;
+}
+
+export async function fetchCurrentUser(): Promise<AuthUser | null> {
+  const res = await fetch(`${ROOT_URL}/auth/me`, {
+    credentials: 'include',
+  });
+
+  if (!res.ok) throw new Error('Failed to fetch current user');
+
+  return res.json();
+}
+
+export async function logout() {
+  return fetch(`${ROOT_URL}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+}

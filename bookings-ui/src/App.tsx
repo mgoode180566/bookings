@@ -6,6 +6,12 @@ import CreateEventDialog from './components/CreateEventDialog';
 import { fetchEvents, addAttendeeToGroup, removeAttendeeFromGroup, createEvent } from './api/api';
 import type { TrackdayEvent, SkillLevel, PendingAddAttendee } from './types';
 import { useAuth } from 'react-oidc-context';
+import {
+  fetchCurrentUser,
+  loginWithFacebook,
+  logout,
+  type AuthUser,
+} from './api/api';
 
 const rawTheme = createTheme({
   palette: {
@@ -147,14 +153,18 @@ const App: React.FC = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
     const completePendingAdd = async () => {
       console.log('Auth state changed:', { isLoading: auth.isLoading, isAuthenticated: auth.isAuthenticated, user: auth.user });
-      console.log('redirect_uri', import.meta.env.VITE_COGNITO_REDIRECT_URI);
       if (auth.isLoading || !auth.isAuthenticated || !auth.user?.access_token) {
         return;
       }
+
+      fetchCurrentUser()
+        .then(setUser)
+        .catch(() => setUser(null));
 
       const pending = sessionStorage.getItem('pendingAddAttendee');
       if (!pending) return;
@@ -273,6 +283,18 @@ const App: React.FC = () => {
                 }}
               >
                 Trackday Calendar
+                {user ? (
+                  <Button onClick={async () => {
+                    await logout();
+                    setUser(null);
+                  }}>
+                    Logout {user.name}
+                  </Button>
+                ) : (
+                  <Button onClick={loginWithFacebook}>
+                    Login with Facebook
+                  </Button>
+                )}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
