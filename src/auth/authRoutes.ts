@@ -5,14 +5,17 @@ import { exchangeCodeForToken, getFacebookUser } from './facebookService';
 const router = express.Router();
 
 const isProduction = process.env.NODE_ENV === 'production';
+const facebookRedirectUri =
+  process.env.FACEBOOK_REDIRECT_URI || 'http://localhost:3001/auth/facebook/callback';
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 router.get('/facebook', (_req, res) => {
   const url = new URL('https://www.facebook.com/dialog/oauth');
 
   url.searchParams.set('client_id', process.env.FACEBOOK_APP_ID!);
-  url.searchParams.set('redirect_uri', process.env.FACEBOOK_REDIRECT_URI!);
+  url.searchParams.set('redirect_uri', facebookRedirectUri);
   url.searchParams.set('response_type', 'code');
-  url.searchParams.set('scope', 'email,public_profile');
+  url.searchParams.set('scope', 'public_profile');
 
   res.redirect(url.toString());
 });
@@ -46,7 +49,7 @@ router.get('/facebook/callback', async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.redirect(process.env.FRONTEND_URL || 'http://localhost:5173');
+    res.redirect(frontendUrl);
   } catch (err) {
     console.error(err);
     res.status(500).send('Facebook login failed');

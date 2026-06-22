@@ -60,10 +60,13 @@ app.get('/api/participants', async (_req: Request, res: Response) => {
 });
 
 // POST /api/createevent
-app.post('/api/createevent', async (req: Request, res: Response) => {
-  try {
-    const { venue, date, timeOfDay, organiser, groups } =
-      req.body as CreateEventRequestBody;
+app.post(
+  '/api/createevent',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { venue, date, timeOfDay, organiser, groups } =
+        req.body as CreateEventRequestBody;
 
     if (!venue || typeof venue !== 'string') {
       res.status(400).json({ error: 'Venue is required' });
@@ -146,7 +149,7 @@ app.post(
       const eventId = Number(req.params.eventId);
       const skillLevel = req.params.skillLevel as SkillLevel;
 
-      const userId = req.user!.sub;
+      const userId = req.user!.id;
 
       const events = await readEvents();
       const event = events.find((e) => e.id === eventId);
@@ -176,7 +179,8 @@ app.post(
 
       group.attendees.push({
         userId: userId,
-        name: `User ${userId.substring(0, 6)}`,
+        name: req.user!.name || `User ${userId.substring(0, 6)}`,
+        picture: req.user!.picture,
       });
 
       await writeEvents(events);
@@ -197,7 +201,7 @@ app.delete(
     try {
       const eventId = Number(req.params.eventId);
       const skillLevel = req.params.skillLevel as SkillLevel;
-      const userId = req.user!.sub;
+      const userId = req.user!.id;
 
       const events = await readEvents();
       const event = events.find((e) => e.id === eventId);

@@ -10,6 +10,7 @@ export type SkillLevel = 'Novice' | 'Intermediate' | 'Advanced' | 'CB500';
 export interface Attendee {
   userId: string;
   name: string;
+  picture?: string;
 }
 
 export interface Group {

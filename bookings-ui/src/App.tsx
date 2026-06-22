@@ -1,11 +1,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { CssBaseline, ThemeProvider, createTheme, responsiveFontSizes, Container, Typography, Box, CircularProgress, Alert, Button } from '@mui/material';
+import { CssBaseline, ThemeProvider, createTheme, responsiveFontSizes, Container, Typography, Box, CircularProgress, Alert, Button, Avatar } from '@mui/material';
 import EventList from './components/EventList';
 import CreateEventDialog from './components/CreateEventDialog';
 import { fetchEvents, addAttendeeToGroup, removeAttendeeFromGroup, createEvent } from './api/api';
-import type { TrackdayEvent, SkillLevel, PendingAddAttendee } from './types';
-import { useAuth } from 'react-oidc-context';
+import type { TrackdayEvent, SkillLevel } from './types';
 import {
   fetchCurrentUser,
   loginWithFacebook,
@@ -147,73 +146,63 @@ const rawTheme = createTheme({
 const theme = responsiveFontSizes(rawTheme, { factor: 2 });
 
 const App: React.FC = () => {
-  const auth = useAuth();
   const [events, setEvents] = useState<TrackdayEvent[]>([]);
   const [latestFirst, setLatestFirst] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    const completePendingAdd = async () => {
-      console.log('Auth state changed:', { isLoading: auth.isLoading, isAuthenticated: auth.isAuthenticated, user: auth.user });
-      if (auth.isLoading || !auth.isAuthenticated || !auth.user?.access_token) {
-        return;
+    const loadInitialData = async () => {
+      try {
+        // Check if user is logged in
+        const currentUser = await fetchCurrentUser().catch(() => null);
+        setUser(currentUser);
+
+        // Load events
+        const events = await fetchEvents();
+        setEvents(events);
+
+        // Handle pending attendee add
+        const pending = sessionStorage.getItem('pendingAddAttendee');
+        if (pending && currentUser) {
+          sessionStorage.removeItem('pendingAddAttendee');
+          const { eventId, skillLevel } = JSON.parse(pending) as {
+            eventId: number;
+            skillLevel: SkillLevel;
+          };
+          const updated = await addAttendeeToGroup(eventId, skillLevel, '');
+          setEvents(updated);
+        }
+      } catch (err) {
+        console.error('Failed to load initial data:', err);
+        setError('Failed to load data');
+      } finally {
+        setLoading(false);
+        setIsCheckingAuth(false);
       }
-
-      fetchCurrentUser()
-        .then(setUser)
-        .catch(() => setUser(null));
-
-      const pending = sessionStorage.getItem('pendingAddAttendee');
-      if (!pending) return;
-
-      sessionStorage.removeItem('pendingAddAttendee');
-
-      const { eventId, skillLevel } = JSON.parse(pending) as {
-        eventId: number;
-        skillLevel: SkillLevel;
-      };
-
-      const updated = await addAttendeeToGroup(
-        eventId,
-        skillLevel,
-        auth.user.access_token,
-      );
-
-      setEvents(updated);
     };
 
-    void completePendingAdd();
-  }, [auth.isLoading, auth.isAuthenticated, auth.user?.access_token]);
+    void loadInitialData();
+  }, []);
 
   const handleAddAttendee = async (
     eventId: number,
     skillLevel: SkillLevel,
   ) => {
     try {
-      if (!auth.isAuthenticated) {
+      if (!user) {
         sessionStorage.setItem(
           'pendingAddAttendee',
           JSON.stringify({ eventId, skillLevel }),
         );
-
-        await auth.signinRedirect({
-          extraQueryParams: {
-            identity_provider: 'Facebook',
-          },
-        });
+        loginWithFacebook();
         return;
       }
 
-      const accessToken = auth.user?.access_token;
-
-      if (!accessToken) {
-        throw new Error('No access token found');
-      }
-
-      const updated = await addAttendeeToGroup(eventId, skillLevel, accessToken);
+      const updated = await addAttendeeToGroup(eventId, skillLevel, '');
       setEvents(updated);
     } catch (err) {
       console.error('Failed to add attendee:', err);
@@ -283,7 +272,7 @@ const App: React.FC = () => {
                 }}
               >
                 Trackday Calendar
-                {user ? (
+                {/* {user ? (
                   <Button onClick={async () => {
                     await logout();
                     setUser(null);
@@ -294,9 +283,28 @@ const App: React.FC = () => {
                   <Button onClick={loginWithFacebook}>
                     Login with Facebook
                   </Button>
-                )}
+                )} */}
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {user?.picture ? (
+                    <Avatar
+                      src={user.picture}
+                      alt={user.name}
+                      sx={{ width: 30, height: 30, border: '1px solid rgba(129,140,248,0.45)' }}
+                    />
+                  ) : (
+                    <Avatar sx={{ width: 30, height: 30, bgcolor: 'rgba(129,140,248,0.22)' }}>
+                      {(user?.name || 'M').charAt(0).toUpperCase()}
+                    </Avatar>
+                  )}
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'rgba(255,255,255,0.72)', fontWeight: 600, whiteSpace: 'nowrap' }}
+                  >
+                    {user ? `Signed in as ${user.name}` : 'Signed in as guest'}
+                  </Typography>
+                </Box>
                 <Button
                   variant="contained"
                   onClick={() => setCreateDialogOpen(true)}
@@ -319,21 +327,18 @@ const App: React.FC = () => {
                   +
                 </Button>
 
-                {!auth.isLoading &&
-                  (auth.isAuthenticated ? (
-                    <Button variant="outlined" onClick={() => auth.signoutRedirect()}>
+                {!isCheckingAuth &&
+                  (user ? (
+                    <Button variant="outlined" onClick={async () => {
+                      await logout();
+                      setUser(null);
+                    }}>
                       Sign out
                     </Button>
                   ) : (
                     <Button
                       variant="outlined"
-                      onClick={() =>
-                        auth.signinRedirect({
-                          extraQueryParams: {
-                            identity_provider: 'Facebook',
-                          },
-                        })
-                      }
+                      onClick={loginWithFacebook}
                     >
                       Sign in
                     </Button>
@@ -404,6 +409,7 @@ const App: React.FC = () => {
                 events={sortedEvents}
                 onAddAttendee={handleAddAttendee}
                 onRemoveAttendee={handleRemoveAttendee}
+                canAddAttendee={Boolean(user)}
               />
             )}
             <CreateEventDialog

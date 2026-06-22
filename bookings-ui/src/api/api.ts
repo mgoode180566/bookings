@@ -15,11 +15,8 @@ const ROOT_URL =
   'http://localhost:3001';
 
 const getAccessToken = (): string => {
-  const token = localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
-  if (!token) {
-    throw new Error('Missing access token. Please sign in again.');
-  }
-  return token;
+  // Tokens are now stored in httpOnly cookies, so we don't need to manage them in frontend
+  return '';
 };
 
 export const fetchEvents = async (): Promise<TrackdayEvent[]> => {
@@ -38,14 +35,11 @@ export const removeAttendeeFromGroup = async (
   eventId: number,
   skillLevel: SkillLevel,
 ): Promise<TrackdayEvent[]> => {
-  const accessToken = getAccessToken();
   const res = await fetch(
     `${BASE_URL}/events/${eventId}/groups/${encodeURIComponent(skillLevel)}/attendees/self`,
     {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      credentials: 'include',
     },
   );
   if (!res.ok) {
@@ -58,15 +52,13 @@ export const removeAttendeeFromGroup = async (
 export const addAttendeeToGroup = async (
   eventId: number,
   skillLevel: SkillLevel,
-  accessToken: string,
+  _accessToken: string,
 ): Promise<TrackdayEvent[]> => {
   const res = await fetch(
     `${BASE_URL}/events/${eventId}/groups/${encodeURIComponent(skillLevel)}/attendees`,
     {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      credentials: 'include',
     },
   );
 
@@ -83,6 +75,7 @@ export const createEvent = async (
   const res = await fetch(`${BASE_URL}/createevent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(payload),
   });
 

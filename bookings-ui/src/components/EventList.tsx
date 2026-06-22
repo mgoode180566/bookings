@@ -42,9 +42,10 @@ interface EventItemProps {
   event: TrackdayEvent;
   onAddAttendee: (eventId: number, skillLevel: SkillLevel) => void;
   onRemoveAttendee: (eventId: number, skillLevel: SkillLevel) => void;
+  canAddAttendee: boolean;
 }
 
-const EventItem: React.FC<EventItemProps> = ({ event, onAddAttendee, onRemoveAttendee }) => {
+const EventItem: React.FC<EventItemProps> = ({ event, onAddAttendee, onRemoveAttendee, canAddAttendee }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const headingText = event.organiser ? `${event.organiser}: ${event.venue}` : event.title;
   const formattedDate = new Date(event.date).toLocaleDateString('en-GB', {
@@ -174,9 +175,9 @@ const EventItem: React.FC<EventItemProps> = ({ event, onAddAttendee, onRemoveAtt
                 <List dense disablePadding sx={{ pl: 0.5 }}>
                   {[...group.attendees]
                     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
-                    .map((attendee) => (
+                    .map((attendee, index) => (
                     <ListItem
-                      key={attendee.userId}
+                      key={attendee.userId ?? `${attendee.name}-${index}`}
                       disableGutters
                       sx={{
                         py: 0.5,
@@ -187,6 +188,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, onAddAttendee, onRemoveAtt
                       }}
                     >
                       <Avatar
+                        src={attendee.picture}
                         sx={{
                           width: 28,
                           height: 28,
@@ -246,7 +248,11 @@ const EventItem: React.FC<EventItemProps> = ({ event, onAddAttendee, onRemoveAtt
             variant="contained"
             size="small"
             startIcon={<PersonAddIcon sx={{ fontSize: '15px !important' }} />}
-            onClick={() => setDialogOpen(true)}
+            onClick={() => {
+              if (!canAddAttendee) return;
+              setDialogOpen(true);
+            }}
+            disabled={!canAddAttendee}
             sx={{
               background: 'linear-gradient(135deg, #6366f1, #818cf8)',
               color: '#fff',
@@ -260,10 +266,23 @@ const EventItem: React.FC<EventItemProps> = ({ event, onAddAttendee, onRemoveAtt
                 background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
                 boxShadow: '0 4px 20px rgba(99,102,241,0.45)',
               },
+              '&.Mui-disabled': {
+                background: 'rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.3)',
+                boxShadow: 'none',
+              },
             }}
           >
             Add Participant
           </Button>
+          {!canAddAttendee && (
+            <Typography
+              variant="caption"
+              sx={{ display: 'block', mt: 1, color: 'rgba(255,255,255,0.35)' }}
+            >
+              Sign in to add yourself to this event
+            </Typography>
+          )}
         </Box>
       </AccordionDetails>
       <AddAttendeeDialog
@@ -280,9 +299,10 @@ interface EventListProps {
   events: TrackdayEvent[];
   onAddAttendee: (eventId: number, skillLevel: SkillLevel) => void;
   onRemoveAttendee: (eventId: number, skillLevel: SkillLevel) => void;
+  canAddAttendee: boolean;
 }
 
-const EventList: React.FC<EventListProps> = ({ events, onAddAttendee, onRemoveAttendee }) => {
+const EventList: React.FC<EventListProps> = ({ events, onAddAttendee, onRemoveAttendee, canAddAttendee }) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {events.map((event) => (
@@ -291,6 +311,7 @@ const EventList: React.FC<EventListProps> = ({ events, onAddAttendee, onRemoveAt
           event={event}
           onAddAttendee={onAddAttendee}
           onRemoveAttendee={onRemoveAttendee}
+          canAddAttendee={canAddAttendee}
         />
       ))}
     </Box>
