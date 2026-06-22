@@ -226,23 +226,25 @@ const EventItem: React.FC<EventItemProps> = ({
                           </Typography>
                         }
                       />
-                      <IconButton
-                        size="small"
-                        onClick={() => onRemoveAttendee(event.id, group.skillLevel)}
-                        sx={{
-                          ml: 'auto',
-                          color: 'rgba(255,255,255,0.2)',
-                          width: 26,
-                          height: 26,
-                          flexShrink: 0,
-                          '&:hover': {
-                            color: '#f87171',
-                            background: 'rgba(248,113,113,0.12)',
-                          },
-                        }}
-                      >
-                        <CloseIcon sx={{ fontSize: 13 }} />
-                      </IconButton>
+                      {currentUserId && attendee.userId === currentUserId && (
+                        <IconButton
+                          size="small"
+                          onClick={() => onRemoveAttendee(event.id, group.skillLevel)}
+                          sx={{
+                            ml: 'auto',
+                            color: 'rgba(255,255,255,0.2)',
+                            width: 26,
+                            height: 26,
+                            flexShrink: 0,
+                            '&:hover': {
+                              color: '#f87171',
+                              background: 'rgba(248,113,113,0.12)',
+                            },
+                          }}
+                        >
+                          <CloseIcon sx={{ fontSize: 13 }} />
+                        </IconButton>
+                      )}
                     </ListItem>
                   ))}
                 </List>
