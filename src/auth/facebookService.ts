@@ -19,7 +19,7 @@ export async function exchangeCodeForToken(code: string) {
 export async function getFacebookUser(accessToken: string) {
   const res = await axios.get('https://graph.facebook.com/me', {
     params: {
-      fields: 'id,name,picture',
+      fields: 'id,name,email,picture',
       access_token: accessToken,
     },
   });

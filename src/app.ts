@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import type { SkillLevel, TrackdayEvent } from './types';
 import { readEvents, readParticipants, writeEvents } from './storage';
-import { AuthenticatedRequest, requireAuth } from './auth';
+import { AuthenticatedRequest, requireAuth, requireCsrf } from './auth/authMiddleware';
 import cookieParser from 'cookie-parser';
 import authRoutes from './auth/authRoutes';
 
@@ -96,6 +96,7 @@ app.get('/api/participants', async (_req: Request, res: Response) => {
 app.post(
   '/api/createevent',
   requireAuth,
+  requireCsrf,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { venue, date, timeOfDay, organiser, groups } =
@@ -177,6 +178,7 @@ app.post(
 app.post(
   '/api/events/:eventId/groups/:skillLevel/attendees',
   requireAuth,
+  requireCsrf,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       console.log('Authenticated user:', req.user);
@@ -236,6 +238,7 @@ app.post(
 app.delete(
   '/api/events/:eventId/groups/:skillLevel/attendees/self',
   requireAuth,
+  requireCsrf,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const eventId = Number(req.params.eventId);
