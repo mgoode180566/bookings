@@ -7,6 +7,9 @@ export interface CreateEventInput {
   organiser: string;
   groups: SkillLevel[];
 }
+
+let csrfToken: string | null = null;
+
 // In production set VITE_API_URL to your deployed backend URL
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api';
 const ROOT_URL =
@@ -29,6 +32,19 @@ const safeFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   }
 };
 
+const withCsrf = (init: RequestInit = {}): RequestInit => {
+  const headers = new Headers(init.headers);
+
+  if (csrfToken) {
+    headers.set('x-csrf-token', csrfToken);
+  }
+
+  return {
+    ...init,
+    headers,
+  };
+};
+
 export const fetchEvents = async (): Promise<TrackdayEvent[]> => {
   const res = await safeFetch(`${BASE_URL}/events`);
   if (!res.ok) throw new Error(await parseErrorMessage(res, 'Failed to fetch events'));
@@ -47,10 +63,10 @@ export const removeAttendeeFromGroup = async (
 ): Promise<TrackdayEvent[]> => {
   const res = await safeFetch(
     `${BASE_URL}/events/${eventId}/groups/${encodeURIComponent(skillLevel)}/attendees/self`,
-    {
+    withCsrf({
       method: 'DELETE',
       credentials: 'include',
-    },
+    }),
   );
   if (!res.ok) {
     throw new Error(await parseErrorMessage(res, 'Failed to remove attendee'));
@@ -65,10 +81,10 @@ export const addAttendeeToGroup = async (
 ): Promise<TrackdayEvent[]> => {
   const res = await safeFetch(
     `${BASE_URL}/events/${eventId}/groups/${encodeURIComponent(skillLevel)}/attendees`,
-    {
+    withCsrf({
       method: 'POST',
       credentials: 'include',
-    },
+    }),
   );
 
   if (!res.ok) {
@@ -80,12 +96,12 @@ export const addAttendeeToGroup = async (
 export const createEvent = async (
   payload: CreateEventInput,
 ): Promise<TrackdayEvent[]> => {
-  const res = await safeFetch(`${BASE_URL}/createevent`, {
+  const res = await safeFetch(`${BASE_URL}/createevent`, withCsrf({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify(payload),
-  });
+  }));
 
   if (!res.ok) {
     throw new Error(await parseErrorMessage(res, 'Failed to create event'));
@@ -99,6 +115,7 @@ export interface AuthUser {
   name: string;
   email?: string;
   picture?: string;
+  csrfToken: string;
 }
 
 export function loginWithFacebook() {
@@ -112,12 +129,20 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
 
   if (!res.ok) throw new Error(await parseErrorMessage(res, 'Failed to fetch current user'));
 
-  return res.json();
+  const user = (await res.json()) as AuthUser | null;
+  csrfToken = user?.csrfToken ?? null;
+  return user;
 }
 
 export async function logout() {
-  return safeFetch(`${ROOT_URL}/auth/logout`, {
+  const res = await safeFetch(`${ROOT_URL}/auth/logout`, withCsrf({
     method: 'POST',
     credentials: 'include',
-  });
+  }));
+
+  if (res.ok) {
+    csrfToken = null;
+  }
+
+  return res;
 }
