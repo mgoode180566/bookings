@@ -51,6 +51,8 @@ const readEventsWithVisibility = async (): Promise<TrackdayEvent[]> => {
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
@@ -58,9 +60,10 @@ app.use(cors({
 
 
 app.use(cookieParser());
+app.use(express.json());
 app.use('/auth', authRoutes);
 
-app.use(express.json());
+
 
 app.get('/health', (_req: Request, res: Response) => {
   res.sendStatus(200);
