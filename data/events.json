@@ -71,13 +71,7 @@
       {
         "id": 7,
         "skillLevel": "Advanced",
-        "attendees": [
-          {
-            "userId": "10163152597626588",
-            "name": "Michael Goode",
-            "picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10163152597626588&height=50&width=50&ext=1784722631&hash=Aftyk916Ai7T1yQiKufWugg_"
-          }
-        ]
+        "attendees": []
       }
     ],
     "isVisible": true
@@ -97,6 +91,11 @@
           {
             "id": 2,
             "name": "Afif"
+          },
+          {
+            "userId": "10163152597626588",
+            "name": "Michael Goode",
+            "picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10163152597626588&height=50&width=50&ext=1784886068&hash=AfsUNrLASTPyC6alCrrF9INP"
           }
         ]
       },
@@ -113,13 +112,7 @@
       {
         "id": 10,
         "skillLevel": "Advanced",
-        "attendees": [
-          {
-            "userId": "10163152597626588",
-            "name": "Michael Goode",
-            "picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10163152597626588&height=50&width=50&ext=1784721619&hash=AfubD4jfpAhFV5_dV4ry2uNE"
-          }
-        ]
+        "attendees": []
       },
       {
         "id": 11,
@@ -150,13 +143,7 @@
       {
         "id": 12,
         "skillLevel": "Novice",
-        "attendees": [
-          {
-            "userId": "10163152597626588",
-            "name": "Michael Goode",
-            "picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10163152597626588&height=50&width=50&ext=1784722631&hash=Aftyk916Ai7T1yQiKufWugg_"
-          }
-        ]
+        "attendees": []
       }
     ]
   }
